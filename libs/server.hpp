@@ -12,7 +12,7 @@ struct Server {
     using Duration = std::chrono::milliseconds;
 
     uint32_t id_;
-    uint32_t weight_;
+    uint32_t weight_;  // запрещено меньше 1, проконтролируйте
     uint32_t cnt_connects_;
     uint32_t total_request_;
     uint32_t total_time_;
@@ -40,6 +40,10 @@ struct Server {
 
     uint32_t getId() const noexcept {
         return id_;
+    }
+
+    uint32_t getWeight() const noexcept {
+        return weight_;
     }
 };
 
