@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - { name: GCC,   cc: gcc,   cxx: g++ }
+          - { name: GCC, cc: gcc, cxx: g++ }
           - { name: Clang, cc: clang, cxx: clang++ }
 
     env:
@@ -49,7 +49,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - { name: GCC,   cc: gcc,   cxx: g++ }
+          - { name: GCC, cc: gcc, cxx: g++ }
           - { name: Clang, cc: clang, cxx: clang++ }
 
     env:
@@ -82,6 +82,10 @@ jobs:
     name: Coverage (GCC)
     runs-on: self-hosted
 
+    permissions:
+      contents: read
+      pull-requests: write
+
     env:
       BUILD_DIR: build-coverage
       CC: gcc
@@ -107,6 +111,7 @@ jobs:
         run: ctest --test-dir "$BUILD_DIR" --output-on-failure
 
       - name: Generate coverage report
+        id: coverage
         run: |
           lcov --directory "$BUILD_DIR" --capture --output-file coverage.info \
                --rc geninfo_unexecuted_blocks=1 \
@@ -116,9 +121,63 @@ jobs:
                --output-file coverage.info \
                --ignore-errors unused,inconsistent
           lcov --list coverage.info
+          genhtml coverage.info --output-directory coverage-html \
+               --ignore-errors inconsistent,source
+
+          summary="$(lcov --summary coverage.info 2>&1)"
+          lines="$(echo "$summary" | grep -oP 'lines\.+:\s*\K[0-9.]+%')"
+          funcs="$(echo "$summary" | grep -oP 'functions\.+:\s*\K[0-9.]+%')"
+          echo "lines=${lines:-n/a}"     >> "$GITHUB_OUTPUT"
+          echo "functions=${funcs:-n/a}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish coverage to job summary
+        if: always()
+        run: |
+          {
+            echo "## ✅ Tests passed — Coverage report"
+            echo ""
+            echo '```'
+            lcov --summary coverage.info 2>&1 | grep -E 'lines|functions'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- coverage-report -->';
+            const body = [
+              marker,
+              '## ✅ Tests passed',
+              '',
+              '| Metric | Coverage |',
+              '| --- | --- |',
+              `| Lines | ${{ steps.coverage.outputs.lines }} |`,
+              `| Functions | ${{ steps.coverage.outputs.functions }} |`,
+              '',
+              `Full HTML report: download the **coverage-report** artifact from [this run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}).`,
+            ].join('\n');
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number }
+            );
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage.info
+          path: |
+            coverage.info
+            coverage-html
