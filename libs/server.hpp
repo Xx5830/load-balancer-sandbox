@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <memory>
 #include <thread>
 
 namespace load_balancer {
@@ -20,7 +21,7 @@ struct Server {
       : id_(next_id_++)
       , weight_(weight) {}
 
-  Duration process(Task task) {
+  Duration process(Task task) noexcept {
     ++cnt_connects_;
 
     auto start = std::chrono::steady_clock::now();
@@ -32,6 +33,12 @@ struct Server {
         std::chrono::duration_cast<Duration>(end - start).count());
     ++total_request_;
   }
+
+  uint32_t getId() const noexcept {
+    return id_;
+  }
 };
+
+using ServerPtr = std::shared_ptr<Server>;
 
 }  // namespace load_balancer
