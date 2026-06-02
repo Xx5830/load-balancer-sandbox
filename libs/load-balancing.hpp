@@ -16,5 +16,14 @@ struct LoadBalancer {
     void setPickPolicy(Args... args) {
         pick_policy_ = std::make_unique<PickPolicy>(args...);
     }
+
+    ServerPtr pickServer() {
+        auto result = pick_policy_->pickServer();
+        if (result.has_value()) {
+            return *result;
+        } else {
+            return nullptr;
+        }
+    }
 };
 }  // namespace load_balancer

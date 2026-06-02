@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "load-balancing.hpp"
 #include "server.hpp"
 
 namespace load_balancer {
