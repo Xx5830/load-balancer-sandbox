@@ -7,56 +7,23 @@ on:
     branches: [ main, dev ]
 
 jobs:
-  build-and-test:
-    name: Build & Test (${{ matrix.compiler.name }})
+  test:
+    name: Test (${{ matrix.config.name }})
     runs-on: self-hosted
 
     strategy:
       fail-fast: false
       matrix:
-        compiler:
-          - { name: GCC, cc: gcc, cxx: g++ }
-          - { name: Clang, cc: clang, cxx: clang++ }
+        config:
+          - { name: gcc, cc: gcc, cxx: g++, san: false }
+          - { name: gcc-san, cc: gcc, cxx: g++, san: true }
+          - { name: clang, cc: clang, cxx: clang++, san: false }
+          - { name: clang-san, cc: clang, cxx: clang++, san: true }
 
     env:
-      BUILD_DIR: build-${{ matrix.compiler.cc }}
-      CC: ${{ matrix.compiler.cc }}
-      CXX: ${{ matrix.compiler.cxx }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Toolchain versions
-        run: |
-          cmake --version
-          "$CXX" --version
-
-      - name: Configure
-        run: cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build
-        run: cmake --build "$BUILD_DIR" --parallel
-
-      - name: Test
-        run: ctest --test-dir "$BUILD_DIR" --output-on-failure
-
-  leak-check:
-    name: Leak check (${{ matrix.compiler.name }})
-    runs-on: self-hosted
-
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler:
-          - { name: GCC, cc: gcc, cxx: g++ }
-          - { name: Clang, cc: clang, cxx: clang++ }
-
-    env:
-      BUILD_DIR: build-asan-${{ matrix.compiler.cc }}
-      CC: ${{ matrix.compiler.cc }}
-      CXX: ${{ matrix.compiler.cxx }}
-      SAN_FLAGS: "-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+      BUILD_DIR: build-${{ matrix.config.name }}
+      CC: ${{ matrix.config.cc }}
+      CXX: ${{ matrix.config.cxx }}
       ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1"
       UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
 
@@ -64,27 +31,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure (sanitizers)
-        run: >
-          cmake -S . -B "$BUILD_DIR"
-          -DCMAKE_BUILD_TYPE=Debug
-          -DCMAKE_C_FLAGS="$SAN_FLAGS"
-          -DCMAKE_CXX_FLAGS="$SAN_FLAGS"
-          -DCMAKE_EXE_LINKER_FLAGS="$SAN_FLAGS"
+      - name: Configure
+        run: |
+          if [ "${{ matrix.config.san }}" = "true" ]; then
+            SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" \
+              -DCMAKE_EXE_LINKER_FLAGS="$SAN"
+          else
+            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
+          fi
 
       - name: Build
         run: cmake --build "$BUILD_DIR" --parallel
 
-      - name: Test under sanitizers
-        run: ctest --test-dir "$BUILD_DIR" --output-on-failure
+      - name: Test (gtest JSON)
+        run: |
+          mkdir -p results
+          ctest --test-dir "$BUILD_DIR" --output-on-failure
+          "$BUILD_DIR"/tests/testing \
+            --gtest_output=json:results/${{ matrix.config.name }}.json
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.config.name }}
+          path: results/${{ matrix.config.name }}.json
 
   coverage:
-    name: Coverage (GCC)
+    name: Coverage (gcc)
     runs-on: self-hosted
-
-    permissions:
-      contents: read
-      pull-requests: write
 
     env:
       BUILD_DIR: build-coverage
@@ -111,7 +88,6 @@ jobs:
         run: ctest --test-dir "$BUILD_DIR" --output-on-failure
 
       - name: Generate coverage report
-        id: coverage
         run: |
           lcov --directory "$BUILD_DIR" --capture --output-file coverage.info \
                --rc geninfo_unexecuted_blocks=1 \
@@ -120,44 +96,68 @@ jobs:
                '/usr/*' '*/_deps/*' '*/tests/*' \
                --output-file coverage.info \
                --ignore-errors unused,inconsistent
-          lcov --list coverage.info
           genhtml coverage.info --output-directory coverage-html \
                --ignore-errors inconsistent,source
 
           summary="$(lcov --summary coverage.info 2>&1)"
           lines="$(echo "$summary" | grep -oP 'lines\.+:\s*\K[0-9.]+%')"
           funcs="$(echo "$summary" | grep -oP 'functions\.+:\s*\K[0-9.]+%')"
-          echo "lines=${lines:-n/a}"     >> "$GITHUB_OUTPUT"
-          echo "functions=${funcs:-n/a}" >> "$GITHUB_OUTPUT"
+          mkdir -p results
+          printf 'lines=%s\nfunctions=%s\n' "${lines:-n/a}" "${funcs:-n/a}" \
+            > results/coverage.txt
 
-      - name: Publish coverage to job summary
+      - name: Upload coverage report
         if: always()
-        run: |
-          {
-            echo "## ✅ Tests passed — Coverage report"
-            echo ""
-            echo '```'
-            lcov --summary coverage.info 2>&1 | grep -E 'lines|functions'
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.info
+            coverage-html
+            results/coverage.txt
 
-      - name: Comment coverage on PR
+  report:
+    name: Report Card
+    runs-on: self-hosted
+    needs: [test, coverage]
+    if: always()
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-artifact
+
+      - name: Build report card
+        run: |
+          mkdir -p results
+          cp artifacts/*.json results/ 2>/dev/null || true
+          python3 /mnt/data/actions-runner/report_card.py results \
+            --commit "${GITHUB_SHA::7}" \
+            --coverage coverage-artifact/results/coverage.txt \
+            --out report.md || true
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment report card on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const marker = '<!-- coverage-report -->';
-            const body = [
-              marker,
-              '## ✅ Tests passed',
-              '',
-              '| Metric | Coverage |',
-              '| --- | --- |',
-              `| Lines | ${{ steps.coverage.outputs.lines }} |`,
-              `| Functions | ${{ steps.coverage.outputs.functions }} |`,
-              '',
-              `Full HTML report: download the **coverage-report** artifact from [this run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}).`,
-            ].join('\n');
+            const fs = require('fs');
+            const body = fs.readFileSync('report.md', 'utf8');
+            const marker = '<!-- report-card -->';
 
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
@@ -173,11 +173,3 @@ jobs:
             } else {
               await github.rest.issues.createComment({ owner, repo, issue_number, body });
             }
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: |
-            coverage.info
-            coverage-html
