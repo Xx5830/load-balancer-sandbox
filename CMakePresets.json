@@ -1,0 +1,62 @@
+{
+    "version" : 3,
+    "configurePresets": [
+        {
+            "name" : "parent",
+            "hidden" : true,
+            "generator" : "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true
+            }
+        },
+        {
+            "name": "debug",
+            "displayName": "debug",
+            "inherits": "parent",
+            "description": "debug build without optimization",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE" : "Debug",
+                "BUILD_TESTING" : "TRUE"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "release",
+            "inherits": "parent",
+            "description": "release build with optimization",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE" : "Release",
+                "BUILD_TESTING" : "FALSE"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "jobs": 8
+        },
+        {
+            "name": "release",
+            "configurePreset": "release",
+            "jobs": 4
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "release",
+            "configurePreset": "release",
+            "output": {
+                "outputOnFailure": true
+            }
+        }
+    ]
+}
