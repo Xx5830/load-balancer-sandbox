@@ -3,6 +3,7 @@
 #include <exception>
 #include <limits>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <vector>
@@ -29,18 +30,21 @@ struct IPickPolicy {
 
 struct RoundRobinPick : IPickPolicy {
    protected:
-    size_t index_;
+    std::atomic<size_t> index_{0};
+    mutable std::mutex mtx_;
 
    public:
     RoundRobinPick()
         : index_(0) {}
 
     std::optional<ServerPtr> pickServer(uint64_t id) {
+        std::lock_guard lock(mtx_);
+
         if (!servers_ || servers_->empty()) {
             return std::nullopt;
         } else if (index_ >= servers_->size()) {
             // не меняйте на минус, количество серверов может уменьшиться
-            index_ %= servers_->size();
+            index_ = index_ % servers_->size();
         }
 
         return (*servers_)[index_++];
@@ -49,8 +53,9 @@ struct RoundRobinPick : IPickPolicy {
 
 struct WeightRoundRobinPick : IPickPolicy {
    protected:
-    size_t index_;
     size_t cnt_;
+    std::atomic<size_t> index_{0};
+    mutable std::mutex mtx_;
 
    public:
     WeightRoundRobinPick()
@@ -58,6 +63,7 @@ struct WeightRoundRobinPick : IPickPolicy {
         , cnt_(0) {}
 
     std::optional<ServerPtr> pickServer(uint64_t id) {
+        std::lock_guard lock(mtx_);
         if (!servers_ || servers_->empty()) {
             return std::nullopt;
         }
@@ -66,7 +72,7 @@ struct WeightRoundRobinPick : IPickPolicy {
             ++index_;
             if (index_ >= servers_->size()) {
                 // не меняйте на минус, количество серверов может уменьшиться
-                index_ %= servers_->size();
+                index_ = index_ % servers_->size();
             }
             cnt_ = (*servers_)[index_]->getWeight();
             if (cnt_ == 0) {
@@ -109,6 +115,7 @@ template <uint32_t VnodesPerWeight = 15>
 struct ConsistentHashingPick : IPickPolicy {
    protected:
     std::map<uint64_t, ServerPtr> ring_;
+    std::mutex mtx_;
 
     uint64_t vnodeHash(const ServerPtr& server, size_t offset) const {
         uint64_t h1 = std::hash<uint64_t>{}(server->getId());
@@ -117,6 +124,7 @@ struct ConsistentHashingPick : IPickPolicy {
     }
 
     void rebuildRing() {
+        std::unique_lock lock(mtx_);
         ring_.clear();
         if (!servers_ || servers_->empty())
             return;
@@ -138,6 +146,7 @@ struct ConsistentHashingPick : IPickPolicy {
     }
 
     void addServerEvent(ServerPtr server) override {
+        std::unique_lock lock(mtx_);
         if (!servers_) {
             return;
         }
@@ -149,6 +158,7 @@ struct ConsistentHashingPick : IPickPolicy {
     }
 
     void eraseServerEvent(ServerPtr server) override {
+        std::unique_lock lock(mtx_);
         int weight = server->getWeight();
         int total_vnodes = weight * VnodesPerWeight;
         for (int i = 0; i < total_vnodes; ++i) {
