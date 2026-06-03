@@ -88,32 +88,7 @@ jobs:
         run: ctest --test-dir "$BUILD_DIR" --output-on-failure
 
       - name: Generate coverage report
-        run: |
-          LCOV_OPTS="--rc geninfo_unexecuted_blocks=1 --ignore-errors mismatch,gcov,inconsistent"
-
-          # baseline: все скомпилированные файлы как 0% (из .gcno),
-          # чтобы непокрытые файлы из libs/ и bin/ тоже попали в отчёт.
-          lcov --directory "$BUILD_DIR" --capture --initial \
-               --output-file base.info $LCOV_OPTS
-          # фактический прогон тестов
-          lcov --directory "$BUILD_DIR" --capture \
-               --output-file run.info $LCOV_OPTS
-          # baseline + run -> непокрытое остаётся видимым как 0%
-          lcov --add-tracefile base.info --add-tracefile run.info \
-               --output-file merged.info --ignore-errors inconsistent
-          # оставляем только исходники проекта: libs/ и bin/
-          lcov --extract merged.info '*/libs/*' '*/bin/*' \
-               --output-file coverage.info --ignore-errors unused,inconsistent
-
-          genhtml coverage.info --output-directory coverage-html \
-               --ignore-errors inconsistent,source
-
-          summary="$(lcov --summary coverage.info 2>&1)"
-          lines="$(echo "$summary" | grep -oP 'lines\.+:\s*\K[0-9.]+%')"
-          funcs="$(echo "$summary" | grep -oP 'functions\.+:\s*\K[0-9.]+%')"
-          mkdir -p results
-          printf 'lines=%s\nfunctions=%s\n' "${lines:-n/a}" "${funcs:-n/a}" \
-            > results/coverage.txt
+        run: /mnt/data/actions-runner/gen_coverage.sh "$BUILD_DIR" results
 
       - name: Upload coverage report
         if: always()
