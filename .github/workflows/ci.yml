@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [ main, dev, ci/cd ]
   pull_request:
     types: [ opened, synchronize, reopened, ready_for_review ]
 
@@ -88,23 +87,7 @@ jobs:
         run: ctest --test-dir "$BUILD_DIR" --output-on-failure
 
       - name: Generate coverage report
-        run: |
-          lcov --directory "$BUILD_DIR" --capture --output-file coverage.info \
-               --rc geninfo_unexecuted_blocks=1 \
-               --ignore-errors mismatch,gcov,inconsistent
-          lcov --remove coverage.info \
-               '/usr/*' '*/_deps/*' '*/tests/*' \
-               --output-file coverage.info \
-               --ignore-errors unused,inconsistent
-          genhtml coverage.info --output-directory coverage-html \
-               --ignore-errors inconsistent,source
-
-          summary="$(lcov --summary coverage.info 2>&1)"
-          lines="$(echo "$summary" | grep -oP 'lines\.+:\s*\K[0-9.]+%')"
-          funcs="$(echo "$summary" | grep -oP 'functions\.+:\s*\K[0-9.]+%')"
-          mkdir -p results
-          printf 'lines=%s\nfunctions=%s\n' "${lines:-n/a}" "${funcs:-n/a}" \
-            > results/coverage.txt
+        run: /mnt/data/actions-runner/gen_coverage.sh "$BUILD_DIR" results
 
       - name: Upload coverage report
         if: always()
