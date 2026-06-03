@@ -1,6 +1,6 @@
 BasedOnStyle: Google
 ColumnLimit: 80
-IndentWidth: 2
+IndentWidth: 4
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: false
 AllowShortBlocksOnASingleLine: false
