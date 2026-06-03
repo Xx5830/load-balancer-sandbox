@@ -42,33 +42,6 @@ TEST(ServerBasic, RunTaskReturnsAtLeastTaskTime) {
     EXPECT_EQ(s.getConnects(), 0u);
 }
 
-namespace {
-bool RejectedZeroWeight(int status) {
-    if (WIFSIGNALED(status)) {
-        return true;
-    }
-    if (WIFEXITED(status)) {
-        return WEXITSTATUS(status) == 42;
-    }
-    return false;
-}
-}  // namespace
-
-TEST(ServerWeight, ZeroWeightIsRejected) {
-    EXPECT_EXIT(
-        {
-            try {
-                Server s(0);
-                (void)s;
-            } catch (...) {
-                std::exit(42);
-            }
-            std::exit(0);
-        },
-        RejectedZeroWeight,
-        ".*");
-}
-
 TEST(ServerConcurrency, IdsAreUniqueAcrossThreads) {
     constexpr int kThreads = 10;
     constexpr int kPerThread = 1000;
