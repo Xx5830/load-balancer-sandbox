@@ -89,13 +89,22 @@ jobs:
 
       - name: Generate coverage report
         run: |
-          lcov --directory "$BUILD_DIR" --capture --output-file coverage.info \
-               --rc geninfo_unexecuted_blocks=1 \
-               --ignore-errors mismatch,gcov,inconsistent
-          lcov --remove coverage.info \
-               '/usr/*' '*/_deps/*' '*/tests/*' \
-               --output-file coverage.info \
-               --ignore-errors unused,inconsistent
+          LCOV_OPTS="--rc geninfo_unexecuted_blocks=1 --ignore-errors mismatch,gcov,inconsistent"
+
+          # baseline: все скомпилированные файлы как 0% (из .gcno),
+          # чтобы непокрытые файлы из libs/ и bin/ тоже попали в отчёт.
+          lcov --directory "$BUILD_DIR" --capture --initial \
+               --output-file base.info $LCOV_OPTS
+          # фактический прогон тестов
+          lcov --directory "$BUILD_DIR" --capture \
+               --output-file run.info $LCOV_OPTS
+          # baseline + run -> непокрытое остаётся видимым как 0%
+          lcov --add-tracefile base.info --add-tracefile run.info \
+               --output-file merged.info --ignore-errors inconsistent
+          # оставляем только исходники проекта: libs/ и bin/
+          lcov --extract merged.info '*/libs/*' '*/bin/*' \
+               --output-file coverage.info --ignore-errors unused,inconsistent
+
           genhtml coverage.info --output-directory coverage-html \
                --ignore-errors inconsistent,source
 
