@@ -11,17 +11,20 @@ namespace load_balancer {
 struct Server {
     using Duration = std::chrono::milliseconds;
 
-    uint32_t id_;
+    uint64_t id_;
     uint32_t weight_;  // запрещено меньше 1, проконтролируйте
     uint32_t cnt_connects_;
-    uint32_t total_request_;
-    uint32_t total_time_;
+    uint64_t total_request_;
+    uint64_t total_time_;
 
     inline static uint32_t next_id_;
 
     Server(uint32_t weight)
         : id_(next_id_++)
-        , weight_(weight) {}
+        , weight_(weight)
+        , cnt_connects_(0)
+        , total_request_(0)
+        , total_time_(0) {}
 
     Duration runTask(Task task) noexcept {
         ++cnt_connects_;
@@ -38,7 +41,7 @@ struct Server {
         return diff_time;
     }
 
-    uint32_t getId() const noexcept {
+    uint64_t getId() const noexcept {
         return id_;
     }
 
@@ -46,7 +49,7 @@ struct Server {
         return weight_;
     }
 
-    uint32_t getConnects() {
+    uint32_t getConnects() const noexcept {
         return cnt_connects_;
     }
 };

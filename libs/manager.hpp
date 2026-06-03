@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -16,7 +17,14 @@ struct ServerManager {
     std::unique_ptr<LoadBalancer> balancer_;
 
    public:
-    uint32_t addServer(int weight) {
+    ServerManager(std::unique_ptr<LoadBalancer> balancer)
+        : balancer_(std::move(balancer)) {
+        if (balancer_) {
+            balancer_->setServers(&servers_);
+        }
+    }
+
+    uint64_t addServer(int weight) {
         ServerPtr server = std::make_shared<Server>(weight);
 
         servers_.push_back(server);
@@ -25,8 +33,8 @@ struct ServerManager {
         return server->getId();
     }
 
-    std::vector<uint32_t> listServers() const noexcept {
-        std::vector<uint32_t> ids;
+    std::vector<uint64_t> listServers() const noexcept {
+        std::vector<uint64_t> ids;
         for (const auto& now : servers_) {
             ids.push_back(now->getId());
         }
@@ -34,11 +42,11 @@ struct ServerManager {
         return ids;
     }
 
-    std::vector<ServerPtr> servers() noexcept {
+    std::vector<ServerPtr>& servers() noexcept {
         return servers_;
     }
 
-    bool deleteServer(uint32_t id) noexcept {
+    bool deleteServer(uint64_t id) noexcept {
         if (auto it = std::find_if(
                 servers_.begin(),
                 servers_.end(),
@@ -52,7 +60,7 @@ struct ServerManager {
         return false;
     }
 
-    bool countServer(uint32_t id) const noexcept {
+    bool countServer(uint64_t id) const noexcept {
         return std::find_if(servers_.begin(),
                             servers_.end(),
                             [&id](const ServerPtr& elem) {
@@ -62,6 +70,10 @@ struct ServerManager {
 
     Server::Duration runTask(Task task) {
         ServerPtr server = balancer_->pickServer(task.getId());
+        if (!server) {
+            //переделать на optional
+            throw std::runtime_error("Нет Серверов");
+        }
         return server->runTask(task);
     }
 };
