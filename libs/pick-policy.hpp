@@ -1,182 +1,199 @@
 #pragma once
 
-#include <exception>
-#include <limits>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <optional>
-#include <stdexcept>
 #include <vector>
 
 #include "server.hpp"
 
 namespace load_balancer {
+
 struct IPickPolicy {
-   protected:
-    std::vector<ServerPtr>* servers_ = nullptr;
+    virtual std::optional<ServerPtr> pickServer(uint64_t request_id, const std::vector<ServerPtr>& servers) = 0;
 
-   public:
-    virtual std::optional<ServerPtr> pickServer(uint64_t id) = 0;
-    IPickPolicy() {}
+    virtual void resetServers(const std::vector<ServerPtr>& servers) {}
 
-    virtual void setServers(std::vector<ServerPtr>* servers) {
-        servers_ = servers;
-    }
+    virtual void addServerEvent(const ServerPtr& server, const std::vector<ServerPtr>& servers) {}
 
-    virtual void addServerEvent(ServerPtr server) {}
-    virtual void eraseServerEvent(ServerPtr server) {}
-    virtual ~IPickPolicy() {};
+    virtual void eraseServerEvent(const ServerPtr& server, const std::vector<ServerPtr>& servers) {}
+
+    virtual ~IPickPolicy() = default;
 };
 
 struct RoundRobinPick : IPickPolicy {
-   protected:
-    std::atomic<size_t> index_{0};
-    mutable std::mutex mtx_;
-
    public:
-    RoundRobinPick()
-        : index_(0) {}
-
-    std::optional<ServerPtr> pickServer(uint64_t id) {
+    std::optional<ServerPtr> pickServer(uint64_t request_id, const std::vector<ServerPtr>& servers) override {
         std::lock_guard lock(mtx_);
 
-        if (!servers_ || servers_->empty()) {
+        if (servers.empty()) {
             return std::nullopt;
-        } else if (index_ >= servers_->size()) {
-            // не меняйте на минус, количество серверов может уменьшиться
-            index_ = index_ % servers_->size();
         }
 
-        return (*servers_)[index_++];
+        if (index_ >= servers.size()) {
+            index_ = 0;
+        }
+
+        ServerPtr selected = servers[index_];
+        index_ = (index_ + 1) % servers.size();
+        return selected;
     }
+
+    void resetServers(const std::vector<ServerPtr>& servers) override {
+        std::lock_guard lock(mtx_);
+        index_ = servers.empty() ? 0 : index_ % servers.size();
+    }
+
+    void eraseServerEvent(const ServerPtr& server, const std::vector<ServerPtr>& servers) override {
+        resetServers(servers);
+    }
+
+   private:
+    size_t index_{0};
+    mutable std::mutex mtx_;
 };
 
 struct WeightRoundRobinPick : IPickPolicy {
-   protected:
-    size_t cnt_;
-    std::atomic<size_t> index_{0};
-    mutable std::mutex mtx_;
-
    public:
-    WeightRoundRobinPick()
-        : index_(-1)
-        , cnt_(0) {}
-
-    std::optional<ServerPtr> pickServer(uint64_t id) {
+    std::optional<ServerPtr> pickServer(uint64_t request_id, const std::vector<ServerPtr>& servers) override {
         std::lock_guard lock(mtx_);
-        if (!servers_ || servers_->empty()) {
+
+        if (servers.empty()) {
+            index_ = 0;
+            remaining_for_current_ = 0;
             return std::nullopt;
         }
 
-        if (cnt_ == 0) {
-            ++index_;
-            if (index_ >= servers_->size()) {
-                // не меняйте на минус, количество серверов может уменьшиться
-                index_ = index_ % servers_->size();
-            }
-            cnt_ = (*servers_)[index_]->getWeight();
-            if (cnt_ == 0) {
-                // временная проверка, перенести в конструктор сервера
-                throw std::runtime_error("Запрещено иметь вес меньше 1");
-            }
-        }
-        --cnt_;
+        normalizeLocked(servers);
 
-        return (*servers_)[index_];
+        if (remaining_for_current_ == 0) {
+            remaining_for_current_ = servers[index_]->getWeight();
+        }
+
+        ServerPtr selected = servers[index_];
+        --remaining_for_current_;
+        if (remaining_for_current_ == 0) {
+            index_ = (index_ + 1) % servers.size();
+        }
+
+        return selected;
     }
+
+    void resetServers(const std::vector<ServerPtr>& servers) override {
+        std::lock_guard lock(mtx_);
+        normalizeLocked(servers);
+        remaining_for_current_ = 0;
+    }
+
+    void eraseServerEvent(const ServerPtr& server, const std::vector<ServerPtr>& servers) override {
+        resetServers(servers);
+    }
+
+   private:
+    void normalizeLocked(const std::vector<ServerPtr>& servers) {
+        if (servers.empty()) {
+            index_ = 0;
+            remaining_for_current_ = 0;
+            return;
+        }
+
+        if (index_ >= servers.size()) {
+            index_ %= servers.size();
+            remaining_for_current_ = 0;
+        }
+    }
+
+    size_t index_{0};
+    uint32_t remaining_for_current_{0};
+    mutable std::mutex mtx_;
 };
 
 struct LeastConnectionsPick : IPickPolicy {
-   protected:
-   public:
-    LeastConnectionsPick() {}
-
-    std::optional<ServerPtr> pickServer(uint64_t id) {
-        if (!servers_ || servers_->empty()) {
+    std::optional<ServerPtr> pickServer(uint64_t request_id, const std::vector<ServerPtr>& servers) override {
+        if (servers.empty()) {
             return std::nullopt;
         }
 
-        size_t index = 0, best = 0;
-        size_t best_value = std::numeric_limits<size_t>::max();
+        size_t best = 0;
+        uint32_t best_connections = servers[0]->getConnects();
 
-        for (size_t index = 0; index < servers_->size(); index++) {
-            if (size_t current = (*servers_)[index]->getConnects();
-                current < best_value) {
+        for (size_t index = 1; index < servers.size(); ++index) {
+            uint32_t current_connections = servers[index]->getConnects();
+
+            if (current_connections < best_connections) {
                 best = index;
-                best_value = current;
+                best_connections = current_connections;
             }
         }
 
-        return (*servers_)[best];
+        return servers[best];
     }
 };
 
 template <uint32_t VnodesPerWeight = 15>
 struct ConsistentHashingPick : IPickPolicy {
-   protected:
-    std::map<uint64_t, ServerPtr> ring_;
-    std::mutex mtx_;
+   public:
+    void resetServers(const std::vector<ServerPtr>& servers) override {
+        std::lock_guard lock(mtx_);
+        ring_.clear();
+        for (const ServerPtr& server : servers) {
+            addServerLocked(server);
+        }
+    }
 
+    void addServerEvent(const ServerPtr& server, const std::vector<ServerPtr>& servers) override {
+        std::lock_guard lock(mtx_);
+        addServerLocked(server);
+    }
+
+    void eraseServerEvent(const ServerPtr& server, const std::vector<ServerPtr>& servers) override {
+        std::lock_guard lock(mtx_);
+        eraseServerLocked(server);
+    }
+
+    std::optional<ServerPtr> pickServer(uint64_t request_id, const std::vector<ServerPtr>& servers) override {
+        std::lock_guard lock(mtx_);
+
+        if (servers.empty() || ring_.empty()) {
+            return std::nullopt;
+        }
+
+        const uint64_t hash = std::hash<uint64_t>{}(request_id);
+        auto it = ring_.lower_bound(hash);
+        if (it == ring_.end()) {
+            it = ring_.begin();
+        }
+
+        return it->second;
+    }
+
+   private:
     uint64_t vnodeHash(const ServerPtr& server, size_t offset) const {
+        // TODO: выбрать хэш-функцию сильнее
         uint64_t h1 = std::hash<uint64_t>{}(server->getId());
         uint64_t h2 = std::hash<size_t>{}(offset);
         return h1 ^ (h2 << 32);
     }
 
-    void rebuildRing() {
-        std::unique_lock lock(mtx_);
-        ring_.clear();
-        if (!servers_ || servers_->empty())
-            return;
-        for (const auto& srv : *servers_) {
-            int weight = srv->getWeight();
-            int total_vnodes = weight * VnodesPerWeight;
-            for (int i = 0; i < total_vnodes; ++i) {
-                ring_.emplace(vnodeHash(srv, i), srv);
-            }
-        }
-    }
-
-   public:
-    ConsistentHashingPick() = default;
-
-    void setServers(std::vector<ServerPtr>* servers) override {
-        servers_ = servers;
-        rebuildRing();
-    }
-
-    void addServerEvent(ServerPtr server) override {
-        std::unique_lock lock(mtx_);
-        if (!servers_) {
-            return;
-        }
-        int weight = server->getWeight();
-        int total_vnodes = weight * VnodesPerWeight;
-        for (int i = 0; i < total_vnodes; ++i) {
+    void addServerLocked(const ServerPtr& server) {
+        uint32_t total_vnodes = server->getWeight() * VnodesPerWeight;
+        for (uint32_t i = 0; i < total_vnodes; ++i) {
             ring_.emplace(vnodeHash(server, i), server);
         }
     }
 
-    void eraseServerEvent(ServerPtr server) override {
-        std::unique_lock lock(mtx_);
-        int weight = server->getWeight();
-        int total_vnodes = weight * VnodesPerWeight;
-        for (int i = 0; i < total_vnodes; ++i) {
+    void eraseServerLocked(const ServerPtr& server) {
+        uint32_t total_vnodes = server->getWeight() * VnodesPerWeight;
+        for (uint32_t i = 0; i < total_vnodes; ++i) {
             ring_.erase(vnodeHash(server, i));
         }
     }
 
-    std::optional<ServerPtr> pickServer(uint64_t id) override {
-        if (ring_.empty())
-            return std::nullopt;
-
-        uint64_t hash = std::hash<uint64_t>{}(id);
-        auto it = ring_.lower_bound(hash);
-        if (it == ring_.end()) {
-            it = ring_.begin();
-        }
-        return it->second;
-    }
+    std::map<uint64_t, ServerPtr> ring_;
+    mutable std::mutex mtx_;
 };
 
 }  // namespace load_balancer

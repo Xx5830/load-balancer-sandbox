@@ -1,47 +1,35 @@
 #pragma once
 
-#include <chrono>
-#include <cstddef>
+#include <cstdint>
 
 namespace load_balancer {
 
 class Task {
    public:
-    using duration = std::chrono::steady_clock::duration;
-
-    Task(size_t id, long double cost, duration execution_time)
+    Task(uint64_t id, long double cost)
         : id_(id)
-        , cost_(cost)
-        , execution_time_(execution_time) {}
+        , cost_(cost) {}
 
-    duration time() const {
-        return execution_time_;
-    }
-
-    void setTime(duration time) {
-        execution_time_ = time;
-    }
-
-    void setId(size_t id) {
-        this->id_ = id;
-    }
-
-    size_t getId() const {
+    uint64_t getId() const {
         return id_;
     }
 
-    void setCost(long double cost) {
-        this->cost_ = cost;
+    void setId(uint64_t id) {
+        id_ = id;
     }
 
     long double getCost() const {
         return cost_;
     }
 
+    void setCost(long double cost) {
+        cost_ = cost;
+    }
+
    private:
-    size_t id_;
+
+    uint64_t id_;
     long double cost_;
-    duration execution_time_;
 };
 
 }  // namespace load_balancer
