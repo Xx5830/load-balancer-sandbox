@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Балансировка нагрузки — результаты</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <h1>⚖️ Балансировка нагрузки</h1>
+      <div class="topbar__meta" id="meta"></div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="cards" id="cards"></section>
+
+    <section class="panel">
+      <h2>Сравнение политик</h2>
+      <p class="hint">Среднее и пиковое время обработки по каждой политике балансировки.</p>
+      <div class="chart-box"><canvas id="compareChart"></canvas></div>
+    </section>
+
+    <section class="panel controls">
+      <div class="controls__row">
+        <label>
+          Политика для графиков ниже
+          <select id="policySelect"></select>
+        </label>
+        <button id="reloadBtn" class="btn">⟳ Обновить</button>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <section class="panel">
+        <h2>График работы во времени</h2>
+        <p class="hint">Латентность и число активных соединений по ходу прогона
+          (<span class="accent" id="tlPolicy"></span>).</p>
+        <div class="chart-box"><canvas id="timelineChart"></canvas></div>
+      </section>
+
+      <section class="panel">
+        <h2>Загруженность серверов</h2>
+        <p class="hint">Сколько запросов попало на каждый сервер
+          (<span class="accent" id="loadPolicy"></span>).</p>
+        <div class="chart-box"><canvas id="loadChart"></canvas></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>Серверы — детально</h2>
+      <div class="table-wrap">
+        <table id="serverTable">
+          <thead>
+            <tr>
+              <th>Сервер</th>
+              <th>Вес</th>
+              <th>Свободность</th>
+              <th>Запросов</th>
+              <th>Доля, %</th>
+              <th>Сред. время, мс</th>
+              <th>Сумм. время, мс</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Демо-данные · источник: <code id="srcLabel">demo</code></span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

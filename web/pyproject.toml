@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lbweb"
+version = "1.0.0"
+description = "Локальный сайт с результатами тестирования балансировки нагрузки"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+lbweb = "lbweb.app:main"
+lbweb-demo = "lbweb.demo:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["lbweb"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
