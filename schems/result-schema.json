@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "result-schema.json",
+  "title": "Load Balancer Benchmark Result",
+  "description": "Схема выходных данных одного эксперимента",
+  "type": "object",
+  "required": ["experiment", "config", "totals", "latency", "failures", "timeline", "servers", "client_groups"],
+  "properties": {
+    "experiment": {
+      "type": "object",
+      "required": ["name", "algorithm", "profile"],
+      "properties": {
+        "name": { "type": "string", "description": "Имя эксперимента" },
+        "algorithm": { "type": "string", "enum": ["RoundRobin", "WeightRoundRobin", "LeastConnections", "ConsistentHashing"] },
+        "profile": { "type": "string", "enum": ["uniform", "burst", "churn", "variable_cost", "sticky", "heterogeneous"] },
+        "preset_file": { "type": "string", "description": "Имя файла пресета" }
+      }
+    },
+    "config": {
+      "type": "object",
+      "required": ["duration_ms", "warmup_ms", "total_request_limit", "manager_workers", "servers", "client_groups"],
+      "properties": {
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "warmup_ms": { "type": "integer", "minimum": 0 },
+        "total_request_limit": { "type": "integer", "minimum": 0 },
+        "manager_workers": { "type": "integer", "minimum": 0 },
+        "seed": { "type": "integer" },
+        "servers": {
+          "type": "array",
+          "items": { "$ref": "common-defs.json#/$defs/server_config" }
+        },
+        "server_model_params": { "$ref": "common-defs.json#/$defs/server_model_params" },
+        "client_groups": {
+          "type": "array",
+          "items": { "$ref": "common-defs.json#/$defs/client_group_config" }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": ["requests_sent", "successful", "failed_final", "retries", "actual_duration_ms", "throughput_rps"],
+      "properties": {
+        "requests_sent": { "type": "integer", "minimum": 0 },
+        "successful": { "type": "integer", "minimum": 0 },
+        "failed_final": { "type": "integer", "minimum": 0 },
+        "retries": { "type": "integer", "minimum": 0 },
+        "actual_duration_ms": { "type": "number", "minimum": 0 },
+        "throughput_rps": { "type": "number", "minimum": 0 }
+      }
+    },
+    "latency": {
+      "type": "object",
+      "required": ["unit", "count", "min", "max", "mean", "stddev", "percentiles", "histogram"],
+      "properties": {
+        "unit": { "type": "string", "const": "ms" },
+        "count": { "type": "integer", "minimum": 0 },
+        "min": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 },
+        "mean": { "type": "number", "minimum": 0 },
+        "stddev": { "type": "number", "minimum": 0 },
+        "percentiles": {
+          "type": "object",
+          "required": ["p50", "p95", "p99"],
+          "properties": {
+            "p50": { "type": "number", "minimum": 0 },
+            "p95": { "type": "number", "minimum": 0 },
+            "p99": { "type": "number", "minimum": 0 }
+          }
+        },
+        "histogram": {
+          "type": "object",
+          "required": ["bucket_size_ms", "buckets"],
+          "properties": {
+            "bucket_size_ms": { "type": "number", "minimum": 0 },
+            "buckets": { "type": "array", "items": { "type": "integer", "minimum": 0 } }
+          }
+        }
+      }
+    },
+    "failures": {
+      "type": "object",
+      "required": ["total_final_failures", "by_reason"],
+      "properties": {
+        "total_final_failures": { "type": "integer", "minimum": 0 },
+        "by_reason": {
+          "type": "object",
+          "required": ["server_crashed", "server_overloaded", "timeout"],
+          "properties": {
+            "server_crashed": { "type": "integer", "minimum": 0 },
+            "server_overloaded": { "type": "integer", "minimum": 0 },
+            "timeout": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["t_ms"],
+        "properties": {
+          "t_ms": { "type": "integer", "minimum": 0 },
+          "active_connections": { "type": "integer", "minimum": 0 },
+          "requests_in_flight": { "type": "integer", "minimum": 0 },
+          "new_requests": { "type": "integer", "minimum": 0 },
+          "successful": { "type": "integer", "minimum": 0 },
+          "failed_this_second": { "type": "integer", "minimum": 0 },
+          "avg_latency_ms": { "type": "number", "minimum": 0 },
+          "p95_latency_ms": { "type": "number", "minimum": 0 },
+          "total_load_avg": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "servers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "weight", "capacity", "max_parallel_requests"],
+        "properties": {
+          "id": { "type": "integer" },
+          "weight": { "type": "integer", "exclusiveMinimum": 0 },
+          "capacity": { "type": "number", "minimum": 0, "maximum": 1 },
+          "max_parallel_requests": { "type": "integer", "minimum": 1 },
+          "start_at_ms": { "type": "integer", "minimum": 0 },
+          "crash_at_ms": { "type": ["integer", "null"] },
+          "requests_received": { "type": "integer", "minimum": 0 },
+          "successful": { "type": "integer", "minimum": 0 },
+          "failed": { "type": "integer", "minimum": 0 },
+          "total_time_processing_ms": { "type": "number", "minimum": 0 },
+          "avg_time_ms": { "type": "number", "minimum": 0 },
+          "min_time_ms": { "type": "number", "minimum": 0 },
+          "max_time_ms": { "type": "number", "minimum": 0 },
+          "avg_load": { "type": "number", "minimum": 0, "maximum": 1 },
+          "peak_load": { "type": "number", "minimum": 0, "maximum": 1 },
+          "crashes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "client_groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["group_index", "sticky_scope", "num_clients", "requests_sent", "successful", "failed_final", "retries", "latency"],
+        "properties": {
+          "group_index": { "type": "integer", "minimum": 0 },
+          "sticky_scope": { "type": "string", "enum": ["none", "client", "group"] },
+          "num_clients": { "type": "integer", "exclusiveMinimum": 0 },
+          "requests_sent": { "type": "integer", "minimum": 0 },
+          "successful": { "type": "integer", "minimum": 0 },
+          "failed_final": { "type": "integer", "minimum": 0 },
+          "retries": { "type": "integer", "minimum": 0 },
+          "latency": {
+            "type": "object",
+            "required": ["mean", "p95", "max"],
+            "properties": {
+              "mean": { "type": "number", "minimum": 0 },
+              "p95": { "type": "number", "minimum": 0 },
+              "max": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
