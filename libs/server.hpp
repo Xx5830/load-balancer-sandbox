@@ -331,10 +331,6 @@ class Server {
         return static_cast<uint32_t>(total_requests_ - successful_ - failed_);
     }
 
-    uint32_t getWeight() const {
-        return weight_;
-    }
-
     ~Server() {
         crash();
         for (auto& w : workers_) {
