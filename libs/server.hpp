@@ -68,15 +68,9 @@ struct ServerStats {
 
 class Server {
    public:
-    using Duration = std::chrono::milliseconds;
     using Clock = std::chrono::steady_clock;
 
    private:
-    struct TaskItem {
-        Task task;
-        std::promise<Duration> promise;
-    };
-
     uint64_t id_;
     uint32_t weight_;
     double capacity_;

@@ -1,8 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <future>
 
 namespace load_balancer {
+
+using Duration = std::chrono::milliseconds;
 
 class Task {
    public:
@@ -27,9 +30,13 @@ class Task {
     }
 
    private:
-
     uint64_t id_;
     long double cost_;
+};
+
+struct TaskItem {
+    Task task;
+    std::promise<Duration> promise;
 };
 
 }  // namespace load_balancer
