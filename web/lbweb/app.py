@@ -7,22 +7,20 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from .config import INDEX_FILE, RESULTS_FILE, STATIC_DIR
-from .data import ResultsNotFoundError, load_results
-from .models import Results
+from .config import ALGORITHMS, INDEX_FILE, STATIC_DIR
+from .data import (
+    delete_batch,
+    list_batches,
+    list_presets,
+    load_batch,
+    save_batch,
+    save_preset,
+)
+from .models import Preset, PresetError, validate_algorithms
+from .runner import BinaryNotFoundError, find_binary, run_batch
 
-app = FastAPI(title="Load Balancing Results", version=version("lbweb"))
+app = FastAPI(title="Load Balancing Lab", version=version("lbweb"))
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-
-def _require_results() -> Results:
-    try:
-        return load_results()
-    except ResultsNotFoundError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail="results.json не найден. Сгенерируйте: lbweb-demo",
-        ) from exc
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -30,19 +28,57 @@ def index() -> HTMLResponse:
     return HTMLResponse(INDEX_FILE.read_text(encoding="utf-8"))
 
 
-@app.get("/api/results")
-def api_results() -> dict[str, Any]:
-    return _require_results().to_dict()
+@app.get("/api/meta")
+def api_meta() -> dict[str, Any]:
+    return {"algorithms": list(ALGORITHMS), "binary": str(find_binary() or "")}
 
 
-@app.get("/api/policies")
-def api_policies() -> list[str]:
-    return _require_results().policy_names()
+@app.post("/api/run")
+def api_run(payload: dict[str, Any]) -> dict[str, Any]:
+    try:
+        preset = Preset.from_dict(payload.get("preset", {}))
+        algorithms = validate_algorithms(payload.get("algorithms", []))
+    except PresetError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    try:
+        batch = run_batch(preset, algorithms)
+    except BinaryNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    run_id = save_batch(batch)
+    return {"id": run_id, **batch.to_dict()}
 
 
-@app.get("/api/health")
-def api_health() -> dict[str, Any]:
-    return {"status": "ok", "has_data": RESULTS_FILE.exists()}
+@app.post("/api/preset")
+def api_save_preset(payload: dict[str, Any]) -> dict[str, str]:
+    try:
+        preset = Preset.from_dict(payload)
+    except PresetError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"name": save_preset(preset)}
+
+
+@app.get("/api/presets")
+def api_presets() -> list[dict[str, Any]]:
+    return list_presets()
+
+
+@app.get("/api/runs")
+def api_runs() -> list[dict[str, Any]]:
+    return list_batches()
+
+
+@app.get("/api/runs/{run_id}")
+def api_run_get(run_id: str) -> dict[str, Any]:
+    try:
+        return load_batch(run_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="прогон не найден") from exc
+
+
+@app.delete("/api/runs/{run_id}")
+def api_run_delete(run_id: str) -> dict[str, bool]:
+    delete_batch(run_id)
+    return {"ok": True}
 
 
 def main() -> None:

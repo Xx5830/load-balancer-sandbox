@@ -42,19 +42,21 @@ struct ServerManager {
 
     void workerLoop() {
         while (true) {
-            TaskItem item;
+            Task task;
+            std::promise<Duration> prom;
             {
                 std::unique_lock<std::mutex> lk(queue_mtx_);
                 queue_cv_.wait(lk, [this] { return stop_ || !task_queue_.empty(); });
-                if (stop_ && task_queue_.empty()) {
+
+                if (stop_) {
                     while (!task_queue_.empty()) {
-                        auto& front = task_queue_.front();
-                        front.promise.set_exception(std::make_exception_ptr(NoServerAvailable{}));
+                        task_queue_.front().promise.set_exception(std::make_exception_ptr(NoServerAvailable{}));
                         task_queue_.pop();
                     }
                     return;
                 }
-                item = std::move(task_queue_.front());
+                task = std::move(task_queue_.front().task);
+                prom = std::move(task_queue_.front().promise);
                 task_queue_.pop();
             }
 
@@ -62,7 +64,7 @@ struct ServerManager {
             {
                 std::shared_lock lock(servers_mtx_);
                 if (!balancer_->hasPickPolicy()) {
-                    item.promise.set_exception(std::make_exception_ptr(NoPolicy{}));
+                    prom.set_exception(std::make_exception_ptr(NoPolicy{}));
                     continue;
                 }
                 auto server_opt = balancer_->pickServer(item.task.getId(), servers_);
@@ -74,11 +76,11 @@ struct ServerManager {
             }
 
             try {
-                auto fut = server->submit(item.task);
+                auto fut = server->submit(task);
                 Duration result = fut.get();
-                item.promise.set_value(result);
+                prom.set_value(result);
             } catch (...) {
-                item.promise.set_exception(std::current_exception());
+                prom.set_exception(std::current_exception());
             }
         }
     }
@@ -105,7 +107,7 @@ struct ServerManager {
                 return prom.get_future();
             }
 
-            auto server_opt = balancer_->pickServer(task.getId(), servers_);
+            auto server = balancer_->pickServer(task.getId(), servers_);
 
             if (!server_opt) {
                 std::promise<Duration> prom;

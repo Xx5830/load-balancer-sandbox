@@ -6,6 +6,35 @@ on:
     types: [ opened, synchronize, reopened, ready_for_review ]
 
 jobs:
+  web-lint:
+    name: Web lint (ruff + mypy)
+    runs-on: self-hosted
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up venv and install
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Ruff
+        run: |
+          . .venv/bin/activate
+          ruff check lbweb/
+
+      - name: Mypy
+        run: |
+          . .venv/bin/activate
+          mypy lbweb/
+
   test:
     name: Test (${{ matrix.config.name }})
     runs-on: self-hosted

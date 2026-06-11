@@ -77,4 +77,5 @@ __pycache__/
 *.egg-info/
 .ruff_cache/
 .mypy_cache/
-web/data/results.json
+web/data/runs/
+web/data/presets/

@@ -158,7 +158,8 @@ class Server {
 
     void workerLoop() {
         while (true) {
-            TaskItem task;
+            Task task;
+            std::promise<Duration> prom;
             {
                 std::unique_lock<std::mutex> lk(queue_mutex_);
 
@@ -171,7 +172,8 @@ class Server {
                     }
                     return;
                 }
-                task = std::move(queue_.front());
+                task = std::move(queue_.front().task);
+                prom = std::move(queue_.front().promise);
                 queue_.pop();
             }
 
@@ -182,7 +184,7 @@ class Server {
                 updateBackgroundLoad();
 
                 refreshLoadLocked(Clock::now());
-                planned = estimateDurationLocked(task.task);
+                planned = estimateDurationLocked(task);
 
                 if (params_.reject_threshold_seconds_ > 0.0) {
                     double threshold_ms = params_.reject_threshold_seconds_ * 1000.0 * (1.0 - load_ * params_.overload_reject_factor_);
@@ -195,12 +197,12 @@ class Server {
                 }
 
                 if (!reject) {
-                    load_ = loadAfterTaskStartLocked(task.task, max_parallel_requests_);
+                    load_ = loadAfterTaskStartLocked(task, max_parallel_requests_);
                 }
             }
 
             if (reject) {
-                task.promise.set_exception(std::make_exception_ptr(ServerOverloaded{}));
+                prom.set_exception(std::make_exception_ptr(ServerOverloaded{}));
                 total_request_.fetch_add(1);
                 failed_.fetch_add(1);
                 cnt_connects_.fetch_sub(1);
@@ -217,7 +219,7 @@ class Server {
                 refreshLoadLocked(end);
             }
 
-            task.promise.set_value(actual_duration);
+            prom.set_value(actual_duration);
 
             total_requests_.fetch_add(1);
             successful_.fetch_add(1);
@@ -271,7 +273,7 @@ class Server {
                 res.set_exception(std::make_exception_ptr(ServerCrashed{}));
                 return fut;
             }
-            queue_.emplace(task, std::move(res));
+            queue_.push({std::move(task), std::move(res)});
         }
 
         cv_.notify_one();
@@ -327,6 +329,10 @@ class Server {
     // заменить на нормальный
     uint32_t getConnects() const {
         return static_cast<uint32_t>(total_requests_ - successful_ - failed_);
+    }
+
+    uint32_t getWeight() const {
+        return weight_;
     }
 
     ~Server() {
