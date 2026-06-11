@@ -12,7 +12,7 @@ using json = nlohmann::json;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <preset.json>\n";
+        std::cerr << "Usage: " << argv[0] << " <preset.json> [output.json]\n";
         return 1;
     }
 
@@ -41,6 +41,15 @@ int main(int argc, char* argv[]) {
     out["experiment"]["preset_file"] = argv[1];
     out["config"] = preset;
 
-    std::cout << out.dump(2) << '\n';
+    if (argc >= 3) {
+        std::ofstream ofs(argv[2]);
+        if (!ofs) {
+            std::cerr << "Cannot write to file: " << argv[2] << '\n';
+            return 1;
+        }
+        ofs << out.dump(2) << '\n';
+    } else {
+        std::cout << out.dump(2) << '\n';
+    }
     return 0;
 }
