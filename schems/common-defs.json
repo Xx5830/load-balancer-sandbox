@@ -1,0 +1,98 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "common-defs.json",
+    "title": "Common definitions for load balancer presets and results",
+    "$defs": {
+      "generator": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["constant", "uniform", "normal", "exponential", "lognormal", "sequence"]
+          },
+          "value": { "type": "number" },
+          "min": { "type": "number" },
+          "max": { "type": "number" },
+          "mean": { "type": "number" },
+          "stddev": { "type": "number" },
+          "values": { "type": "array", "items": { "type": "number" } }
+        },
+        "allOf": [
+          { "if": { "properties": { "type": { "const": "constant" } } }, "then": { "required": ["value"] } },
+          { "if": { "properties": { "type": { "const": "uniform" } } }, "then": { "required": ["min", "max"] } },
+          { "if": { "properties": { "type": { "const": "normal" } } }, "then": { "required": ["mean", "stddev"] } },
+          { "if": { "properties": { "type": { "const": "exponential" } } }, "then": { "required": ["mean"] } },
+          { "if": { "properties": { "type": { "const": "lognormal" } } }, "then": { "required": ["mean", "stddev"] } },
+          { "if": { "properties": { "type": { "const": "sequence" } } }, "then": { "required": ["values"] } }
+        ]
+      },
+      "generator_or_array": {
+        "oneOf": [
+          { "type": "array", "items": { "type": "number" } },
+          { "$ref": "common-defs.json#/$defs/generator" }
+        ]
+      },
+      "generator_or_number": {
+        "oneOf": [
+          { "type": "number", "minimum": 0, "maximum": 1 },
+          { "$ref": "common-defs.json#/$defs/generator" }
+        ]
+      },
+      "server_model_params": {
+        "type": "object",
+        "properties": {
+          "load_recovery_rate": { "type": "number", "default": 0.25 },
+          "load_slowdown_factor": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.9 },
+          "task_load_factor": { "type": "number", "default": 0.35 },
+          "connection_load_factor": { "type": "number", "default": 0.04 },
+          "min_task_seconds": { "type": "number", "default": 0.001 },
+          "max_task_seconds": { "type": "number", "default": 5.0 },
+          "min_weight_factor": { "type": "number", "default": 0.08 }
+        }
+      },
+      "server_config": {
+        "type": "object",
+        "required": ["weight"],
+        "properties": {
+          "weight": { "type": "integer", "exclusiveMinimum": 0 },
+          "capacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1.0 },
+          "background_load": { "$ref": "common-defs.json#/$defs/generator_or_number", "default": 0.0 },
+          "max_parallel_requests": { "type": "integer", "minimum": 1, "default": 1 },
+          "start_at_ms": { "type": "integer", "minimum": 0, "default": 0 },
+          "crash_at_ms": { "type": ["integer", "null"], "default": null },
+          "model_params": { "$ref": "common-defs.json#/$defs/server_model_params" }
+        }
+      },
+      "client_group_config": {
+        "type": "object",
+        "required": ["count", "inter_arrival_ms", "task_cost"],
+        "properties": {
+          "count": { "type": "integer", "exclusiveMinimum": 0 },
+          "sticky_scope": { "type": "string", "enum": ["none", "client", "group"], "default": "none" },
+          "inter_arrival_ms": { "$ref": "common-defs.json#/$defs/generator_or_array" },
+          "task_cost": { "$ref": "common-defs.json#/$defs/generator" },
+          "max_requests": { "type": "integer", "minimum": 0, "default": 0 },
+          "active_windows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["start_ms", "end_ms"],
+              "properties": {
+                "start_ms": { "type": "integer", "minimum": 0 },
+                "end_ms": { "type": "integer", "minimum": 0 }
+              }
+            }
+          },
+          "retry_policy": {
+            "type": "object",
+            "properties": {
+              "max_retries": { "type": "integer", "minimum": 0, "default": 0 },
+              "delay_ms": { "$ref": "common-defs.json#/$defs/generator", "default": { "type": "constant", "value": 0 } },
+              "timeout_ms": { "type": "integer", "minimum": 0, "default": 0 }
+            }
+          }
+        }
+      }
+    }
+  }
