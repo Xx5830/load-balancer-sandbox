@@ -6,6 +6,9 @@
 #include <random>
 #include <span>
 namespace load_balancer {
+
+enum class GeneratorType { SEQUENCE, UNIFORM, NORMAL, EXPONENTIAL, LOGNORMAL };
+
 struct IGenerator {
     virtual double next(std::mt19937& rnd) = 0;
     virtual ~IGenerator() = default;
