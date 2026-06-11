@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <numbers>
 #include <optional>
 #include <random>
@@ -99,5 +100,7 @@ class LognormalGenerator : IGenerator {
     std::lognormal_distribution<double> dist_;
     std::optional<double> min_, max_;
 };
+
+using GeneratorPtr = std::shared_ptr<IGenerator>;
 
 }  // namespace load_balancer

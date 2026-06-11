@@ -8,11 +8,25 @@
 #include <optional>
 
 template <typename T>
+asio::awaitable<T> await_future(std::future<T>&& fut) {
+    auto executor = co_await asio::this_coro::executor;
+    asio::steady_timer timer(executor);
+    while (fut.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+        timer.expires_after(std::chrono::microseconds(100));
+        co_await timer.async_wait(asio::use_awaitable);
+    }
+    co_return fut.get();
+}
+
+template <typename T>
 struct FutureAwaitable {
    private:
     std::future<T> fut_;
 
    public:
+    explicit FutureAwaitable(std::future<T>&& fut)
+        : fut_(std::move(fut)) {}
+
     // NOLINTNEXTLINE
     bool await_ready() const noexcept {
         return fut_.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
