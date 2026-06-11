@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "lbweb"
 version = "1.0.0"
-description = "Локальный сайт с результатами тестирования балансировки нагрузки"
+description = "Локальный сайт для запуска и анализа тестов балансировки нагрузки"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

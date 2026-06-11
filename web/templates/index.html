@@ -3,77 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Балансировка нагрузки — результаты</title>
+  <title>Load Balancing Lab</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <header class="topbar">
     <div class="topbar__inner">
-      <h1>⚖️ Балансировка нагрузки</h1>
-      <div class="topbar__meta" id="meta"></div>
+      <h1>⚖️ Load Balancing Lab</h1>
+      <nav class="tabs">
+        <button class="tab tab--on" data-tab="build">Запуск</button>
+        <button class="tab" data-tab="analyze">Анализ</button>
+      </nav>
+      <div class="topbar__meta" id="binInfo"></div>
     </div>
   </header>
 
   <main class="container">
-    <section class="cards" id="cards"></section>
+    <div id="banner"></div>
 
-    <section class="panel">
-      <h2>Сравнение политик</h2>
-      <p class="hint">Среднее и пиковое время обработки по каждой политике балансировки.</p>
-      <div class="chart-box"><canvas id="compareChart"></canvas></div>
-    </section>
+    <section id="build" class="view">
+      <div class="grid-form">
+        <div class="col">
+          <section class="panel">
+            <h2>Параметры эксперимента</h2>
+            <div class="field-grid">
+              <label>Имя <input id="f-name" type="text" value="experiment"></label>
+              <label>Профиль <input id="f-profile" type="text" placeholder="custom"></label>
+              <label>Seed <input id="f-seed" type="number" value="42"></label>
+              <label>Длительность, мс <input id="f-duration" type="number" value="30000"></label>
+              <label>Прогрев, мс <input id="f-warmup" type="number" value="0"></label>
+              <label>Лимит запросов <input id="f-limit" type="number" value="0"></label>
+              <label>Воркеры менеджера <input id="f-workers" type="number" value="0"></label>
+            </div>
+            <label class="full">Описание <input id="f-desc" type="text"></label>
+          </section>
 
-    <section class="panel controls">
-      <div class="controls__row">
-        <label>
-          Политика для графиков ниже
-          <select id="policySelect"></select>
-        </label>
-        <button id="reloadBtn" class="btn">⟳ Обновить</button>
+          <section class="panel">
+            <div class="panel__head">
+              <h2>Серверы</h2>
+              <button class="btn btn--ghost" id="addServer">+ сервер</button>
+            </div>
+            <div id="servers" class="rows"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel__head">
+              <h2>Группы клиентов</h2>
+              <button class="btn btn--ghost" id="addGroup">+ группа</button>
+            </div>
+            <div id="groups" class="rows rows--wide"></div>
+          </section>
+        </div>
+
+        <div class="col col--side">
+          <section class="panel sticky">
+            <h2>Алгоритмы</h2>
+            <p class="hint">По умолчанию запускаются все выбранные — по одному прогону на алгоритм.</p>
+            <div id="algos" class="algos"></div>
+
+            <div class="actions">
+              <button class="btn" id="runBtn">▶ Запустить</button>
+              <button class="btn btn--ghost" id="saveBtn">💾 Сохранить пресет</button>
+            </div>
+            <div class="actions">
+              <button class="btn btn--ghost" id="exampleBtn">Пример</button>
+              <button class="btn btn--ghost" id="exportBtn">Скачать JSON</button>
+              <button class="btn btn--ghost" id="importBtn">Загрузить JSON</button>
+              <input id="importFile" type="file" accept="application/json" hidden>
+            </div>
+            <pre id="presetPreview" class="preview"></pre>
+          </section>
+        </div>
       </div>
     </section>
 
-    <div class="grid-2">
-      <section class="panel">
-        <h2>График работы во времени</h2>
-        <p class="hint">Латентность и число активных соединений по ходу прогона
-          (<span class="accent" id="tlPolicy"></span>).</p>
-        <div class="chart-box"><canvas id="timelineChart"></canvas></div>
+    <section id="analyze" class="view" hidden>
+      <section class="panel controls">
+        <div class="controls__row">
+          <label>Прогон <select id="runSelect"></select></label>
+          <button class="btn btn--ghost" id="refreshRuns">⟳</button>
+          <button class="btn btn--ghost" id="deleteRun">🗑 Удалить</button>
+        </div>
       </section>
 
-      <section class="panel">
-        <h2>Загруженность серверов</h2>
-        <p class="hint">Сколько запросов попало на каждый сервер
-          (<span class="accent" id="loadPolicy"></span>).</p>
-        <div class="chart-box"><canvas id="loadChart"></canvas></div>
-      </section>
-    </div>
-
-    <section class="panel">
-      <h2>Серверы — детально</h2>
-      <div class="table-wrap">
-        <table id="serverTable">
-          <thead>
-            <tr>
-              <th>Сервер</th>
-              <th>Вес</th>
-              <th>Свободность</th>
-              <th>Запросов</th>
-              <th>Доля, %</th>
-              <th>Сред. время, мс</th>
-              <th>Сумм. время, мс</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <div id="analyzeBody"></div>
+      <div id="analyzeEmpty" class="empty">Нет прогонов. Перейдите во вкладку «Запуск».</div>
     </section>
   </main>
-
-  <footer class="footer">
-    <span>Демо-данные · источник: <code id="srcLabel">demo</code></span>
-  </footer>
 
   <script src="/static/app.js"></script>
 </body>
