@@ -14,7 +14,7 @@ struct IGenerator {
     virtual ~IGenerator() = default;
 };
 
-struct SequenceGenerator : IGenerator {
+struct SequenceGenerator : public IGenerator {
    private:
     std::vector<double> seq_;
     size_t pos_;
@@ -35,7 +35,7 @@ struct SequenceGenerator : IGenerator {
     }
 };
 
-class UniformGenerator : IGenerator {
+class UniformGenerator : public IGenerator {
    public:
     UniformGenerator(double min, double max)
         : dist_(min, max) {}
@@ -47,7 +47,7 @@ class UniformGenerator : IGenerator {
     std::uniform_real_distribution<double> dist_;
 };
 
-class NormalGenerator : IGenerator {
+class NormalGenerator : public IGenerator {
    public:
     NormalGenerator(double center, double deviation, std::optional<double> min = {}, std::optional<double> max = {})
         : dist_(center, deviation)
@@ -70,7 +70,7 @@ class NormalGenerator : IGenerator {
     std::optional<double> min_, max_;
 };
 
-class ExponentialGenerator : IGenerator {
+class ExponentialGenerator : public IGenerator {
    public:
     explicit ExponentialGenerator(double mean)
         : dist_(1.0 / mean) {}
@@ -82,7 +82,7 @@ class ExponentialGenerator : IGenerator {
     std::exponential_distribution<double> dist_;
 };
 
-class LognormalGenerator : IGenerator {
+class LognormalGenerator : public IGenerator {
    public:
     LognormalGenerator(double center, double deviation, std::optional<double> min = {}, std::optional<double> max = {})
         : dist_(center, deviation)
