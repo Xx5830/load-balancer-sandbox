@@ -11,7 +11,7 @@
 
 namespace load_balancer {
 
-enum class StickyScope { None, Client, Group };
+enum StickyScope { None, Client, Group };
 
 struct ServerConfig {
     uint32_t weight;

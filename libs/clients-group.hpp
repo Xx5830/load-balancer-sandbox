@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "benchmark-config.hpp"
 #include "coroutine-utils.hpp"
 #include "generators.hpp"
 #include "manager.hpp"
@@ -24,20 +25,6 @@ struct ClientStats {
     int failed = 0;
     int retries = 0;
     std::vector<double> latencies;
-};
-
-struct ClientGroupConfig {
-    int count;
-    std::string sticky_scope;
-    GeneratorPtr inter_arrival_gen;
-    GeneratorPtr task_cost_gen;
-    int max_requests = 0;
-    struct {
-        int max_retries = 0;
-        GeneratorPtr delay_gen;
-        int timeout_ms = 0;
-    } retry;
-    std::vector<std::pair<int, int>> active_windows;
 };
 
 inline asio::awaitable<void> runClient(int group_index,
@@ -58,9 +45,9 @@ inline asio::awaitable<void> runClient(int group_index,
     auto stop_time = test_start + std::chrono::milliseconds(duration_ms);
 
     uint64_t base_id = 0;
-    if (cfg.sticky_scope == "client") {
+    if (cfg.sticky_scope == Client) {
         base_id = static_cast<uint64_t>(group_index) * 10000 + client_index;
-    } else if (cfg.sticky_scope == "group") {
+    } else if (cfg.sticky_scope == Group) {
         base_id = static_cast<uint64_t>(group_index) * 10000;
     }
 
@@ -100,7 +87,7 @@ inline asio::awaitable<void> runClient(int group_index,
         double cost = cfg.task_cost_gen->next(rng);
 
         uint64_t task_id;
-        if (cfg.sticky_scope == "none") {
+        if (cfg.sticky_scope == None) {
             task_id = static_cast<uint64_t>(group_index) * 1000000 + request_counter;
         } else {
             task_id = base_id;

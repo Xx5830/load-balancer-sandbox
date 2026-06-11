@@ -112,9 +112,8 @@ class Server {
     double decayLoadLocked(Clock::duration elapsed) const {
         double seconds = std::chrono::duration<double>(elapsed).count();
 
-        double recovery = seconds * static_cast<double>(weight_) * LOAD_RECOVERY_RATE;
-
-        return std::clamp(load_ - recovery, MIN_LOAD, MAX_LOAD);
+        double recovery = seconds * static_cast<double>(weight_) * params_.load_recovery_rate_;
+        return std::clamp(load_ - recovery, 0.0, 1.0);
     }
 
     // TODO: оценить корректность формулы на практике(собрать стату и валидировать)
@@ -204,6 +203,7 @@ class Server {
                 task.promise.set_exception(std::make_exception_ptr(ServerOverloaded{}));
                 total_request_.fetch_add(1);
                 failed_.fetch_add(1);
+                cnt_connects_.fetch_sub(1);
                 continue;
             }
 
@@ -239,6 +239,7 @@ class Server {
                     peak_load_ = load_;
                 }
             }
+            cnt_connects_.fetch_sub(1);
         }
     }
 
@@ -260,6 +261,7 @@ class Server {
 
    public:
     std::future<Duration> submit(Task task) {
+        cnt_connects_.fetch_add(1);
         std::promise<Duration> res;
         auto fut = res.get_future();
 
@@ -316,6 +318,11 @@ class Server {
         }
         s.crashes_ = crashes_.load();
         return s;
+    }
+
+    // заменить на нормальный
+    uint32_t getConnects() const {
+        return static_cast<uint32_t>(total_requests_ - successful_ - failed_);
     }
 
     ~Server() {
