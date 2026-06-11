@@ -21,3 +21,8 @@ test preset = "debug": build
 #Группируем проект в файл
 token :
     npx repomix
+
+# Запуск бенчмарка с пресетом и сохранением результата
+run preset_input output preset="debug": build
+    @mkdir -p $(dirname {{output}})
+    ./build/{{preset}}_main {{preset_input}} {{output}}

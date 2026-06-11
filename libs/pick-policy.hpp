@@ -12,6 +12,8 @@
 
 namespace load_balancer {
 
+enum class Algorithm { RoundRobin, WeightRoundRobin, LeastConnections, ConsistentHashing };
+
 struct IPickPolicy {
     virtual std::optional<ServerPtr> pickServer(uint64_t request_id, const std::vector<ServerPtr>& servers) = 0;
 

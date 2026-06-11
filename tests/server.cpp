@@ -1,8 +1,8 @@
+#include "server.hpp"
+
 #include <bits/chrono.h>
 #include <gtest/gtest.h>
 
-
-#include "server.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
