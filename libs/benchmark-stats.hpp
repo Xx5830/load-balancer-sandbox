@@ -48,13 +48,12 @@ struct BenchmarkStats {
         out["latency"]["percentiles"]["p50"] = p50_latency_ms;
         out["latency"]["percentiles"]["p95"] = p95_latency_ms;
         out["latency"]["percentiles"]["p99"] = p99_latency_ms;
-        out["latency"]["histogram"] = nlohmann::json::object();
+        out["latency"]["histogram"] = {{"bucket_size_ms", 0.0}, {"buckets", nlohmann::json::array()}};
 
         out["failures"]["total_final_failures"] = failed;
         out["failures"]["by_reason"]["server_crashed"] = server_crashed_failures;
         out["failures"]["by_reason"]["server_overloaded"] = server_overloaded_failures;
         out["failures"]["by_reason"]["timeout"] = timeout_failures;
-        out["failures"]["by_reason"]["unknown"] = unknown_failures;
 
         out["timeline"] = nlohmann::json::array();
         out["servers"] = nlohmann::json::array();

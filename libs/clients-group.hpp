@@ -113,7 +113,8 @@ inline asio::awaitable<void> runClient(int group_index,
             } catch (const ServerCrashed&) {
                 fail_reason = "server_crashed";
             } catch (...) {
-                fail_reason = "unknown";
+                // Неизвестные исключения не ожидаются, но чтобы не падать, считаем крахом сервера
+                fail_reason = "server_crashed";
                 break;
             }
             ++retries;
