@@ -86,7 +86,6 @@ class Server {
     std::vector<std::thread> workers_;
 
     std::atomic<uint32_t> cnt_connects_{0};
-    std::atomic<uint64_t> total_request_{0};
     std::atomic<uint64_t> total_time_{0};
     double background_load_value_ = 0.0;
 
@@ -169,6 +168,8 @@ class Server {
                     while (!queue_.empty()) {
                         queue_.front().promise.set_exception(std::make_exception_ptr(ServerCrashed{}));
                         queue_.pop();
+                        failed_.fetch_add(1);
+                        cnt_connects_.fetch_sub(1);
                     }
                     return;
                 }
@@ -203,7 +204,6 @@ class Server {
 
             if (reject) {
                 prom.set_exception(std::make_exception_ptr(ServerOverloaded{}));
-                total_request_.fetch_add(1);
                 failed_.fetch_add(1);
                 cnt_connects_.fetch_sub(1);
                 continue;
@@ -221,7 +221,6 @@ class Server {
 
             prom.set_value(actual_duration);
 
-            total_requests_.fetch_add(1);
             successful_.fetch_add(1);
             auto ms = static_cast<uint64_t>(actual_duration.count());
             total_time_ms_.fetch_add(ms);
@@ -264,6 +263,7 @@ class Server {
    public:
     std::future<Duration> submit(Task task) {
         cnt_connects_.fetch_add(1);
+        total_requests_.fetch_add(1);
         std::promise<Duration> res;
         auto fut = res.get_future();
 
@@ -271,6 +271,8 @@ class Server {
             std::lock_guard lk(queue_mutex_);
             if (stop_) {
                 res.set_exception(std::make_exception_ptr(ServerCrashed{}));
+                failed_.fetch_add(1);
+                cnt_connects_.fetch_sub(1);
                 return fut;
             }
             queue_.push({std::move(task), std::move(res)});
@@ -283,6 +285,7 @@ class Server {
     void crash() {
         bool current_flag = crashed_.exchange(true);
         if (!current_flag) {
+            crashes_.fetch_add(1);
             {
                 std::lock_guard lk(queue_mutex_);
                 stop_ = true;
@@ -326,9 +329,8 @@ class Server {
         return s;
     }
 
-    // заменить на нормальный
     uint32_t getConnects() const {
-        return static_cast<uint32_t>(total_requests_ - successful_ - failed_);
+        return cnt_connects_.load();
     }
 
     ~Server() {
