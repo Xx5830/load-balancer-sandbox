@@ -1,10 +1,12 @@
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
 #include <memory>
-#include <numbers>
 #include <optional>
 #include <random>
 #include <span>
+#include <vector>
 namespace load_balancer {
 
 enum class GeneratorType { SEQUENCE, UNIFORM, NORMAL, EXPONENTIAL, LOGNORMAL };
@@ -12,6 +14,19 @@ enum class GeneratorType { SEQUENCE, UNIFORM, NORMAL, EXPONENTIAL, LOGNORMAL };
 struct IGenerator {
     virtual double next(std::mt19937& rnd) = 0;
     virtual ~IGenerator() = default;
+};
+
+class ConstantGenerator : public IGenerator {
+   public:
+    explicit ConstantGenerator(double value)
+        : value_(value) {}
+
+    double next(std::mt19937&) override {
+        return value_;
+    }
+
+   private:
+    double value_;
 };
 
 struct SequenceGenerator : public IGenerator {

@@ -1,17 +1,24 @@
 #pragma once
 
+#include <algorithm>
 #include <asio/co_spawn.hpp>
 #include <asio/detached.hpp>
 #include <asio/io_context.hpp>
 #include <asio/steady_timer.hpp>
 #include <chrono>
+#include <cstddef>
 #include <memory>
 #include <random>
+#include <system_error>
+#include <utility>
 #include <vector>
 
+#include "asio/impl/co_spawn.hpp"
 #include "benchmark-config.hpp"
 #include "benchmark-stats.hpp"
 #include "clients-group.hpp"
+#include "generators.hpp"
+#include "load-balancing.hpp"
 #include "manager.hpp"
 #include "pick-policy.hpp"
 #include "server.hpp"
@@ -42,9 +49,14 @@ class Benchmark {
         }
         ServerManager manager(std::move(balancer), config_.manager_workers);
 
-        for (const auto& srv_cfg : config_.servers) {
+        for (size_t server_index = 0; server_index < config_.servers.size(); ++server_index) {
+            const auto& srv_cfg = config_.servers[server_index];
             auto server =
-                std::make_shared<Server>(srv_cfg.weight, srv_cfg.capacity, srv_cfg.max_parallel_requests, config_.server_model_params);
+                std::make_shared<Server>(srv_cfg.weight,
+                                         srv_cfg.capacity,
+                                         srv_cfg.max_parallel_requests,
+                                         config_.server_model_params,
+                                         makeBackgroundLoadSource(srv_cfg.background_load_gen, server_index));
             manager.addServer(server);
         }
 
@@ -115,6 +127,15 @@ class Benchmark {
     }
 
    private:
+    Server::BackgroundLoadSource makeBackgroundLoadSource(const GeneratorPtr& generator, size_t server_index) const {
+        if (!generator) {
+            return {};
+        }
+
+        auto rng = std::make_shared<std::mt19937>(config_.seed + static_cast<int>(100000 + server_index));
+        return [generator, rng]() mutable { return generator->next(*rng); };
+    }
+
     asio::io_context& io_;
     BenchmarkConfig config_;
 };
