@@ -41,6 +41,22 @@ TEST(ParseGenerator, UniformWithinRange) {
     EXPECT_LE(v, 2.0);
 }
 
+// constant-генератор поддерживает формат из схемы и web-формы.
+TEST(ParseGenerator, ConstantReturnsValue) {
+    auto gen = parseGenerator(json{{"type", "constant"}, {"value", 0.35}});
+    ASSERT_NE(gen, nullptr);
+    std::mt19937 rng(1);
+    EXPECT_DOUBLE_EQ(gen->next(rng), 0.35);
+}
+
+// Число трактуется как constant-генератор для полей generator_or_number.
+TEST(ParseGenerator, NumberBecomesConstant) {
+    auto gen = parseGenerator(json(0.25));
+    ASSERT_NE(gen, nullptr);
+    std::mt19937 rng(1);
+    EXPECT_DOUBLE_EQ(gen->next(rng), 0.25);
+}
+
 // Неизвестный тип генератора бросает исключение.
 TEST(ParseGenerator, UnknownTypeThrows) {
     EXPECT_THROW(parseGenerator(json{{"type", "no_such"}}), std::runtime_error);
@@ -56,6 +72,7 @@ TEST(ParseConfig, MinimalPresetDefaults) {
     ASSERT_EQ(cfg.servers.size(), 1u);
     EXPECT_EQ(cfg.servers[0].weight, 2u);
     EXPECT_DOUBLE_EQ(cfg.servers[0].capacity, 1.0);
+    ASSERT_NE(cfg.servers[0].background_load_gen, nullptr);
     ASSERT_EQ(cfg.client_groups.size(), 1u);
     EXPECT_EQ(cfg.client_groups[0].count, 1);
     EXPECT_EQ(cfg.client_groups[0].sticky_scope, StickyScope::None);
@@ -94,6 +111,19 @@ TEST(ParseConfig, UnknownStickyScopeThrows) {
     auto preset = minimalPreset();
     preset["client_groups"][0]["sticky_scope"] = "bogus";
     EXPECT_THROW(parseConfig(preset), std::runtime_error);
+}
+
+// background_load из server_config доходит до BenchmarkConfig.
+TEST(ParseConfig, ServerBackgroundLoadIsParsed) {
+    auto preset = minimalPreset();
+    preset["servers"][0]["background_load"] = json{{"type", "constant"}, {"value", 0.6}};
+
+    auto cfg = parseConfig(preset);
+    ASSERT_EQ(cfg.servers.size(), 1u);
+    ASSERT_NE(cfg.servers[0].background_load_gen, nullptr);
+
+    std::mt19937 rng(1);
+    EXPECT_DOUBLE_EQ(cfg.servers[0].background_load_gen->next(rng), 0.6);
 }
 
 // server_model_params переопределяются из пресета.
