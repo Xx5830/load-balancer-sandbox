@@ -21,15 +21,15 @@ EXAMPLE = Preset(
     ],
     client_groups=[
         ClientGroupConfig(
-            count=50,
-            inter_arrival_ms={"type": "exponential", "center": 20},
-            task_cost={"type": "normal", "center": 50, "deviation": 15},
+            count=6,
+            inter_arrival_ms={"type": "exponential", "center": 80},
+            task_cost={"type": "normal", "center": 0.08, "deviation": 0.02, "min": 0.01},
         ),
         ClientGroupConfig(
-            count=10,
+            count=3,
             sticky_scope="client",
-            inter_arrival_ms={"type": "uniform", "min": 5, "max": 40},
-            task_cost={"type": "constant", "value": 120},
+            inter_arrival_ms={"type": "uniform", "min": 60, "max": 140},
+            task_cost={"type": "constant", "value": 0.12},
         ),
     ],
 )

@@ -12,7 +12,7 @@
       "properties": {
         "name": { "type": "string", "description": "Имя эксперимента" },
         "algorithm": { "type": "string", "enum": ["RoundRobin", "WeightRoundRobin", "LeastConnections", "ConsistentHashing"] },
-        "profile": { "type": "string", "enum": ["uniform", "burst", "churn", "variable_cost", "sticky", "heterogeneous"] },
+        "profile": { "type": "string", "description": "Метка профиля (произвольная)" },
         "preset_file": { "type": "string", "description": "Имя файла пресета" }
       }
     },

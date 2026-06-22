@@ -1,0 +1,44 @@
+{
+  "name": "test",
+  "description": "",
+  "seed": 42,
+  "duration_ms": 30000,
+  "warmup_ms": 0,
+  "total_request_limit": 10000,
+  "manager_workers": 3,
+  "servers": [
+    {
+      "weight": 1,
+      "capacity": 1.0,
+      "max_parallel_requests": 1,
+      "start_at_ms": 0
+    },
+    {
+      "weight": 2,
+      "capacity": 0.8,
+      "max_parallel_requests": 1,
+      "start_at_ms": 0
+    },
+    {
+      "weight": 3,
+      "capacity": 0.6,
+      "max_parallel_requests": 1,
+      "start_at_ms": 0
+    }
+  ],
+  "client_groups": [
+    {
+      "count": 1,
+      "sticky_scope": "none",
+      "inter_arrival_ms": {
+        "type": "constant",
+        "value": 50
+      },
+      "task_cost": {
+        "type": "constant",
+        "value": 30
+      },
+      "max_requests": 0
+    }
+  ]
+}

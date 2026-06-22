@@ -41,10 +41,19 @@ def _check_generator(g: Any, where: str) -> None:
         _req(g, k, f"{where}.{t}")
 
 
+def _check_background_load(value: Any, where: str) -> None:
+    if isinstance(value, int | float):
+        if not 0 <= float(value) <= 1:
+            raise PresetError(f"{where}: число background_load должно быть в диапазоне [0, 1]")
+        return
+    _check_generator(value, where)
+
+
 @dataclass(slots=True)
 class ServerConfig:
     weight: int
     capacity: float = 1.0
+    background_load: Any = field(default_factory=lambda: {"type": "constant", "value": 0.0})
     max_parallel_requests: int = 1
     start_at_ms: int = 0
     crash_at_ms: int | None = None
@@ -54,9 +63,12 @@ class ServerConfig:
         weight = int(_req(d, "weight", where))
         if weight <= 0:
             raise PresetError(f"{where}: weight должен быть > 0")
+        background_load = d.get("background_load", {"type": "constant", "value": 0.0})
+        _check_background_load(background_load, f"{where}.background_load")
         return cls(
             weight=weight,
             capacity=float(d.get("capacity", 1.0)),
+            background_load=background_load,
             max_parallel_requests=int(d.get("max_parallel_requests", 1)),
             start_at_ms=int(d.get("start_at_ms", 0)),
             crash_at_ms=None if d.get("crash_at_ms") is None else int(d["crash_at_ms"]),
@@ -66,6 +78,7 @@ class ServerConfig:
         out: dict[str, Any] = {
             "weight": self.weight,
             "capacity": self.capacity,
+            "background_load": self.background_load,
             "max_parallel_requests": self.max_parallel_requests,
             "start_at_ms": self.start_at_ms,
         }

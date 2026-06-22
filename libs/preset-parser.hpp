@@ -2,22 +2,30 @@
 
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "benchmark-config.hpp"
 #include "generators.hpp"
+#include "nlohmann/json_fwd.hpp"
+#include "pick-policy.hpp"
 
 namespace load_balancer {
 
 inline GeneratorPtr parseGenerator(const nlohmann::json& j) {
+    if (j.is_number()) {
+        return std::make_shared<ConstantGenerator>(j.get<double>());
+    }
+
     if (j.is_array()) {
         std::vector<double> vals = j.get<std::vector<double>>();
         return std::make_shared<SequenceGenerator>(vals);
     }
     if (!j.is_object()) {
-        throw std::runtime_error("Invalid generator: expected object or array");
+        throw std::runtime_error("Invalid generator: expected object, array or number");
     }
 
     std::string type = j.at("type");
@@ -25,6 +33,8 @@ inline GeneratorPtr parseGenerator(const nlohmann::json& j) {
         std::vector<double> vals = j.at("values").get<std::vector<double>>();
 
         return std::make_shared<SequenceGenerator>(vals);
+    } else if (type == "constant") {
+        return std::make_shared<ConstantGenerator>(j.at("value").get<double>());
     } else if (type == "uniform") {
         double mn = j.at("min");
         double mx = j.at("max");
@@ -104,7 +114,7 @@ inline BenchmarkConfig parseConfig(const nlohmann::json& preset) {
         s.weight = srv.at("weight");
         s.capacity = srv.value("capacity", 1.0);
         s.max_parallel_requests = srv.value("max_parallel_requests", 1);
-        s.background_load_gen = nullptr;
+        s.background_load_gen = parseGenerator(srv.value("background_load", nlohmann::json(0.0)));
         s.start_at_ms = srv.value("start_at_ms", 0);
         s.crash_at_ms = srv.value("crash_at_ms", -1);
         cfg.servers.push_back(s);

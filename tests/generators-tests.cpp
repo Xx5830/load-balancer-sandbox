@@ -5,6 +5,7 @@
 
 #include "generators.hpp"
 
+using load_balancer::ConstantGenerator;
 using load_balancer::ExponentialGenerator;
 using load_balancer::LognormalGenerator;
 using load_balancer::NormalGenerator;
@@ -16,6 +17,15 @@ std::mt19937 makeRng() {
     return std::mt19937(12345);
 }
 }  // namespace
+
+// ConstantGenerator всегда возвращает одно и то же значение.
+TEST(ConstantGenerator, ReturnsFixedValue) {
+    ConstantGenerator gen(4.5);
+    auto rng = makeRng();
+
+    EXPECT_DOUBLE_EQ(gen.next(rng), 4.5);
+    EXPECT_DOUBLE_EQ(gen.next(rng), 4.5);
+}
 
 // SequenceGenerator отдаёт элементы по порядку.
 TEST(SequenceGenerator, ReturnsValuesInOrder) {

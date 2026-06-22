@@ -72,3 +72,18 @@ TEST(Benchmark, ThroughputComputedWhenSuccessful) {
         EXPECT_EQ(stats.latencies.size(), static_cast<size_t>(stats.successful));
     }
 }
+
+// Глобальный total_request_limit ограничивает суммарные запросы всех клиентов.
+TEST(Benchmark, RespectsTotalRequestLimit) {
+    auto cfg = tinyConfig();
+    cfg.duration_ms = 1000;
+    cfg.total_request_limit = 3;
+    cfg.client_groups[0].count = 4;
+
+    asio::io_context io;
+    Benchmark bench(io, cfg);
+    auto stats = bench.run();
+
+    EXPECT_LE(stats.total_requests, 3);
+    EXPECT_EQ(stats.total_requests, stats.successful + stats.failed);
+}

@@ -76,3 +76,18 @@ TEST(RunClient, RespectsMaxRequests) {
     auto stats = runOnce(mgr, grp, 5000);
     EXPECT_LE(stats.requests_sent, 3);
 }
+
+// Один клиентский запрос отправляет на сервер ровно одну задачу.
+TEST(RunClient, SubmitsOneServerTaskPerRequest) {
+    ServerManager mgr(std::make_unique<LoadBalancer>(), 0);
+    mgr.setPickPolicy<RoundRobinPick>();
+    mgr.addServer(1);
+
+    auto grp = makeGroup();
+    grp.max_requests = 1;
+    auto stats = runOnce(mgr, grp, 500);
+
+    ASSERT_EQ(stats.requests_sent, 1);
+    ASSERT_EQ(mgr.servers().size(), 1u);
+    EXPECT_EQ(mgr.servers()[0]->getStats().requests_received_, 1u);
+}

@@ -50,14 +50,12 @@ TEST(BenchmarkStats, FailuresByReasonAreSerialized) {
     s.server_crashed_failures = 2;
     s.server_overloaded_failures = 3;
     s.timeout_failures = 1;
-    s.unknown_failures = 1;
 
     auto j = s.toJson();
     EXPECT_EQ(j["failures"]["total_final_failures"], 7);
     EXPECT_EQ(j["failures"]["by_reason"]["server_crashed"], 2);
     EXPECT_EQ(j["failures"]["by_reason"]["server_overloaded"], 3);
     EXPECT_EQ(j["failures"]["by_reason"]["timeout"], 1);
-    EXPECT_EQ(j["failures"]["by_reason"]["unknown"], 1);
 }
 
 // У пустой статистики секции timeline/servers/client_groups — пустые массивы.

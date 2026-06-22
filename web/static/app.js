@@ -77,6 +77,7 @@ function serverRow(s = {}) {
     <label>start_at_ms <input class="s-start" type="number" min="0" value="${s.start_at_ms ?? 0}"></label>
     <label>crash_at_ms <input class="s-crash" type="number" min="0" placeholder="∞" value="${s.crash_at_ms ?? ""}"></label>
     <button class="rm" title="убрать">✕</button>`;
+  row.append(genRow("background_load", s.background_load ?? { type: "constant", value: 0 }));
   row.querySelector(".rm").onclick = () => { row.remove(); refreshPreview(); };
   return row;
 }
@@ -87,6 +88,7 @@ function readServers() {
     const s = {
       weight: Number(r.querySelector(".s-weight").value),
       capacity: Number(r.querySelector(".s-capacity").value),
+      background_load: readGen(r.querySelector(".gen")),
       max_parallel_requests: Number(r.querySelector(".s-parallel").value),
       start_at_ms: Number(r.querySelector(".s-start").value),
     };
@@ -101,7 +103,7 @@ function groupRow(g = {}) {
   const row = el("div", "row row--group");
   const head = el("div", "row__head");
   head.innerHTML = `
-    <label>count <input class="g-count" type="number" min="1" value="${g.count ?? 10}"></label>
+    <label>count <input class="g-count" type="number" min="1" value="${g.count ?? 3}"></label>
     <label>sticky_scope
       <select class="g-sticky">${["none", "client", "group"].map((o) =>
         `<option ${o === (g.sticky_scope || "none") ? "selected" : ""}>${o}</option>`).join("")}</select></label>
@@ -109,8 +111,8 @@ function groupRow(g = {}) {
     <button class="rm" title="убрать">✕</button>`;
   head.querySelector(".rm").onclick = () => { row.remove(); refreshPreview(); };
   row.append(head);
-  row.append(genRow("inter_arrival_ms", g.inter_arrival_ms ?? { type: "exponential", center: 20 }));
-  row.append(genRow("task_cost", g.task_cost ?? { type: "constant", value: 50 }));
+  row.append(genRow("inter_arrival_ms", g.inter_arrival_ms ?? { type: "exponential", center: 100 }));
+  row.append(genRow("task_cost", g.task_cost ?? { type: "constant", value: 0.05 }));
   return row;
 }
 
@@ -368,6 +370,7 @@ function renderDetail(r, idx, host) {
   if (res.client_groups?.length) panel.append(groupTable(res.client_groups));
 
   drawTimeline(ids[0], res.timeline || [], c);
+  res.latency.histogram.buckets = res.latency.histogram.buckets.map(value => value + res.latency.min)
   drawHistogram(ids[1], res.latency.histogram, c);
   drawServerLoad(ids[2], res.servers);
   drawServerReq(ids[3], res.servers, c);
@@ -520,7 +523,7 @@ async function loadExample() {
     servers: [{ weight: 1, capacity: 1, max_parallel_requests: 4 },
       { weight: 2, capacity: 0.8, max_parallel_requests: 4 },
       { weight: 4, capacity: 1, max_parallel_requests: 8, crash_at_ms: 20000 }],
-    client_groups: [{ count: 50, inter_arrival_ms: { type: "exponential", center: 20 }, task_cost: { type: "normal", center: 50, deviation: 15 } }],
+    client_groups: [{ count: 6, inter_arrival_ms: { type: "exponential", center: 80 }, task_cost: { type: "normal", center: 0.08, deviation: 0.02, min: 0.01 } }],
   });
 }
 

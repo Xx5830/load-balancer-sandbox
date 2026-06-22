@@ -173,11 +173,21 @@ struct ConsistentHashingPick : IPickPolicy {
     }
 
    private:
+    inline static constexpr uint64_t HASH_GOLDEN_RATIO = 0x9e3779b97f4a7c15ULL;
+    inline static constexpr uint64_t HASH_MIX_MULTIPLIER_A = 0xbf58476d1ce4e5b9ULL;
+    inline static constexpr uint64_t HASH_MIX_MULTIPLIER_B = 0x94d049bb133111ebULL;
+
+    static uint64_t mix64(uint64_t value) {
+        value += HASH_GOLDEN_RATIO;
+        value = (value ^ (value >> 30)) * HASH_MIX_MULTIPLIER_A;
+        value = (value ^ (value >> 27)) * HASH_MIX_MULTIPLIER_B;
+        return value ^ (value >> 31);
+    }
+
     uint64_t vnodeHash(const ServerPtr& server, size_t offset) const {
-        // TODO: выбрать хэш-функцию сильнее
-        uint64_t h1 = std::hash<uint64_t>{}(server->getId());
-        uint64_t h2 = std::hash<size_t>{}(offset);
-        return h1 ^ (h2 << 32);
+        uint64_t value = server->getId();
+        value ^= static_cast<uint64_t>(offset) + HASH_GOLDEN_RATIO + (value << 6) + (value >> 2);
+        return mix64(value);
     }
 
     void addServerLocked(const ServerPtr& server) {

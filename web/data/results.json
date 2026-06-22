@@ -1,0 +1,1473 @@
+{
+  "meta": {
+    "generated_at": "2026-06-11T17:26:26.498322+00:00",
+    "source": "demo",
+    "duration_ms": 30000,
+    "total_tasks": 10000,
+    "servers": [
+      {
+        "id": 0,
+        "weight": 4,
+        "capacity": 0.47
+      },
+      {
+        "id": 1,
+        "weight": 4,
+        "capacity": 0.57
+      },
+      {
+        "id": 2,
+        "weight": 1,
+        "capacity": 0.48
+      },
+      {
+        "id": 3,
+        "weight": 1,
+        "capacity": 0.81
+      },
+      {
+        "id": 4,
+        "weight": 3,
+        "capacity": 0.45
+      }
+    ]
+  },
+  "policies": [
+    {
+      "name": "RoundRobin",
+      "summary": {
+        "avg_latency_ms": 98.77,
+        "peak_latency_ms": 264.69,
+        "p95_latency_ms": 128.66,
+        "total_tasks": 10000,
+        "throughput_rps": 333.33
+      },
+      "servers": [
+        {
+          "id": 0,
+          "weight": 4,
+          "capacity": 0.47,
+          "requests": 2000,
+          "total_time_ms": 235534,
+          "avg_time_ms": 117.77,
+          "share_pct": 20.0
+        },
+        {
+          "id": 1,
+          "weight": 4,
+          "capacity": 0.57,
+          "requests": 2000,
+          "total_time_ms": 178899,
+          "avg_time_ms": 89.45,
+          "share_pct": 20.0
+        },
+        {
+          "id": 2,
+          "weight": 1,
+          "capacity": 0.48,
+          "requests": 2000,
+          "total_time_ms": 161823,
+          "avg_time_ms": 80.91,
+          "share_pct": 20.0
+        },
+        {
+          "id": 3,
+          "weight": 1,
+          "capacity": 0.81,
+          "requests": 2000,
+          "total_time_ms": 180606,
+          "avg_time_ms": 90.3,
+          "share_pct": 20.0
+        },
+        {
+          "id": 4,
+          "weight": 3,
+          "capacity": 0.45,
+          "requests": 2000,
+          "total_time_ms": 230813,
+          "avg_time_ms": 115.41,
+          "share_pct": 20.0
+        }
+      ],
+      "timeline": [
+        {
+          "t_ms": 0,
+          "latency_ms": 82.88,
+          "active_connections": 4
+        },
+        {
+          "t_ms": 500,
+          "latency_ms": 85.71,
+          "active_connections": 5
+        },
+        {
+          "t_ms": 1000,
+          "latency_ms": 103.74,
+          "active_connections": 6
+        },
+        {
+          "t_ms": 1500,
+          "latency_ms": 97.69,
+          "active_connections": 8
+        },
+        {
+          "t_ms": 2000,
+          "latency_ms": 117.0,
+          "active_connections": 11
+        },
+        {
+          "t_ms": 2500,
+          "latency_ms": 120.89,
+          "active_connections": 13
+        },
+        {
+          "t_ms": 3000,
+          "latency_ms": 118.04,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 3500,
+          "latency_ms": 114.88,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 4000,
+          "latency_ms": 120.84,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 4500,
+          "latency_ms": 117.06,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 5000,
+          "latency_ms": 108.8,
+          "active_connections": 13
+        },
+        {
+          "t_ms": 5500,
+          "latency_ms": 95.31,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 6000,
+          "latency_ms": 88.02,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 6500,
+          "latency_ms": 84.58,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 7000,
+          "latency_ms": 90.25,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 7500,
+          "latency_ms": 87.04,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 8000,
+          "latency_ms": 86.97,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 8500,
+          "latency_ms": 96.79,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 9000,
+          "latency_ms": 95.79,
+          "active_connections": 20
+        },
+        {
+          "t_ms": 9500,
+          "latency_ms": 103.48,
+          "active_connections": 19
+        },
+        {
+          "t_ms": 10000,
+          "latency_ms": 127.8,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 10500,
+          "latency_ms": 128.84,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 11000,
+          "latency_ms": 143.39,
+          "active_connections": 27
+        },
+        {
+          "t_ms": 11500,
+          "latency_ms": 136.32,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 12000,
+          "latency_ms": 142.37,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 12500,
+          "latency_ms": 141.3,
+          "active_connections": 31
+        },
+        {
+          "t_ms": 13000,
+          "latency_ms": 155.54,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 13500,
+          "latency_ms": 146.04,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 14000,
+          "latency_ms": 144.95,
+          "active_connections": 24
+        },
+        {
+          "t_ms": 14500,
+          "latency_ms": 122.87,
+          "active_connections": 21
+        },
+        {
+          "t_ms": 15000,
+          "latency_ms": 119.69,
+          "active_connections": 20
+        },
+        {
+          "t_ms": 15500,
+          "latency_ms": 110.85,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 16000,
+          "latency_ms": 99.48,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 16500,
+          "latency_ms": 102.08,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 17000,
+          "latency_ms": 84.43,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 17500,
+          "latency_ms": 83.34,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 18000,
+          "latency_ms": 94.56,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 18500,
+          "latency_ms": 87.95,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 19000,
+          "latency_ms": 109.13,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 19500,
+          "latency_ms": 117.61,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 20000,
+          "latency_ms": 109.26,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 20500,
+          "latency_ms": 131.39,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 21000,
+          "latency_ms": 130.87,
+          "active_connections": 26
+        },
+        {
+          "t_ms": 21500,
+          "latency_ms": 133.64,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 22000,
+          "latency_ms": 145.62,
+          "active_connections": 30
+        },
+        {
+          "t_ms": 22500,
+          "latency_ms": 157.06,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 23000,
+          "latency_ms": 143.46,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 23500,
+          "latency_ms": 145.15,
+          "active_connections": 26
+        },
+        {
+          "t_ms": 24000,
+          "latency_ms": 122.78,
+          "active_connections": 21
+        },
+        {
+          "t_ms": 24500,
+          "latency_ms": 118.36,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 25000,
+          "latency_ms": 109.78,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 25500,
+          "latency_ms": 99.01,
+          "active_connections": 13
+        },
+        {
+          "t_ms": 26000,
+          "latency_ms": 78.56,
+          "active_connections": 10
+        },
+        {
+          "t_ms": 26500,
+          "latency_ms": 71.76,
+          "active_connections": 11
+        },
+        {
+          "t_ms": 27000,
+          "latency_ms": 76.65,
+          "active_connections": 9
+        },
+        {
+          "t_ms": 27500,
+          "latency_ms": 67.01,
+          "active_connections": 6
+        },
+        {
+          "t_ms": 28000,
+          "latency_ms": 72.39,
+          "active_connections": 7
+        },
+        {
+          "t_ms": 28500,
+          "latency_ms": 64.74,
+          "active_connections": 6
+        },
+        {
+          "t_ms": 29000,
+          "latency_ms": 66.94,
+          "active_connections": 5
+        },
+        {
+          "t_ms": 29500,
+          "latency_ms": 78.55,
+          "active_connections": 4
+        }
+      ]
+    },
+    {
+      "name": "WeightRoundRobin",
+      "summary": {
+        "avg_latency_ms": 113.64,
+        "peak_latency_ms": 328.32,
+        "p95_latency_ms": 177.27,
+        "total_tasks": 10000,
+        "throughput_rps": 333.33
+      },
+      "servers": [
+        {
+          "id": 0,
+          "weight": 4,
+          "capacity": 0.47,
+          "requests": 3077,
+          "total_time_ms": 421609,
+          "avg_time_ms": 137.02,
+          "share_pct": 30.77
+        },
+        {
+          "id": 1,
+          "weight": 4,
+          "capacity": 0.57,
+          "requests": 3077,
+          "total_time_ms": 308884,
+          "avg_time_ms": 100.38,
+          "share_pct": 30.77
+        },
+        {
+          "id": 2,
+          "weight": 1,
+          "capacity": 0.48,
+          "requests": 769,
+          "total_time_ms": 92330,
+          "avg_time_ms": 120.07,
+          "share_pct": 7.69
+        },
+        {
+          "id": 3,
+          "weight": 1,
+          "capacity": 0.81,
+          "requests": 769,
+          "total_time_ms": 66498,
+          "avg_time_ms": 86.47,
+          "share_pct": 7.69
+        },
+        {
+          "id": 4,
+          "weight": 3,
+          "capacity": 0.45,
+          "requests": 2308,
+          "total_time_ms": 247071,
+          "avg_time_ms": 107.05,
+          "share_pct": 23.08
+        }
+      ],
+      "timeline": [
+        {
+          "t_ms": 0,
+          "latency_ms": 90.01,
+          "active_connections": 4
+        },
+        {
+          "t_ms": 500,
+          "latency_ms": 95.06,
+          "active_connections": 5
+        },
+        {
+          "t_ms": 1000,
+          "latency_ms": 108.34,
+          "active_connections": 7
+        },
+        {
+          "t_ms": 1500,
+          "latency_ms": 115.04,
+          "active_connections": 8
+        },
+        {
+          "t_ms": 2000,
+          "latency_ms": 118.78,
+          "active_connections": 11
+        },
+        {
+          "t_ms": 2500,
+          "latency_ms": 126.83,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 3000,
+          "latency_ms": 142.8,
+          "active_connections": 12
+        },
+        {
+          "t_ms": 3500,
+          "latency_ms": 129.15,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 4000,
+          "latency_ms": 126.04,
+          "active_connections": 13
+        },
+        {
+          "t_ms": 4500,
+          "latency_ms": 136.19,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 5000,
+          "latency_ms": 120.68,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 5500,
+          "latency_ms": 120.29,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 6000,
+          "latency_ms": 101.57,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 6500,
+          "latency_ms": 102.68,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 7000,
+          "latency_ms": 105.36,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 7500,
+          "latency_ms": 110.2,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 8000,
+          "latency_ms": 102.32,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 8500,
+          "latency_ms": 115.08,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 9000,
+          "latency_ms": 110.56,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 9500,
+          "latency_ms": 124.26,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 10000,
+          "latency_ms": 130.91,
+          "active_connections": 24
+        },
+        {
+          "t_ms": 10500,
+          "latency_ms": 145.56,
+          "active_connections": 26
+        },
+        {
+          "t_ms": 11000,
+          "latency_ms": 157.66,
+          "active_connections": 21
+        },
+        {
+          "t_ms": 11500,
+          "latency_ms": 177.04,
+          "active_connections": 29
+        },
+        {
+          "t_ms": 12000,
+          "latency_ms": 181.45,
+          "active_connections": 30
+        },
+        {
+          "t_ms": 12500,
+          "latency_ms": 179.97,
+          "active_connections": 24
+        },
+        {
+          "t_ms": 13000,
+          "latency_ms": 168.4,
+          "active_connections": 24
+        },
+        {
+          "t_ms": 13500,
+          "latency_ms": 161.35,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 14000,
+          "latency_ms": 153.38,
+          "active_connections": 28
+        },
+        {
+          "t_ms": 14500,
+          "latency_ms": 141.38,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 15000,
+          "latency_ms": 135.38,
+          "active_connections": 21
+        },
+        {
+          "t_ms": 15500,
+          "latency_ms": 135.04,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 16000,
+          "latency_ms": 117.37,
+          "active_connections": 19
+        },
+        {
+          "t_ms": 16500,
+          "latency_ms": 102.78,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 17000,
+          "latency_ms": 111.74,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 17500,
+          "latency_ms": 102.96,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 18000,
+          "latency_ms": 96.58,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 18500,
+          "latency_ms": 108.83,
+          "active_connections": 19
+        },
+        {
+          "t_ms": 19000,
+          "latency_ms": 109.95,
+          "active_connections": 21
+        },
+        {
+          "t_ms": 19500,
+          "latency_ms": 117.38,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 20000,
+          "latency_ms": 138.44,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 20500,
+          "latency_ms": 140.68,
+          "active_connections": 20
+        },
+        {
+          "t_ms": 21000,
+          "latency_ms": 166.17,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 21500,
+          "latency_ms": 166.43,
+          "active_connections": 27
+        },
+        {
+          "t_ms": 22000,
+          "latency_ms": 166.61,
+          "active_connections": 27
+        },
+        {
+          "t_ms": 22500,
+          "latency_ms": 171.08,
+          "active_connections": 31
+        },
+        {
+          "t_ms": 23000,
+          "latency_ms": 157.23,
+          "active_connections": 27
+        },
+        {
+          "t_ms": 23500,
+          "latency_ms": 150.11,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 24000,
+          "latency_ms": 149.99,
+          "active_connections": 19
+        },
+        {
+          "t_ms": 24500,
+          "latency_ms": 129.91,
+          "active_connections": 19
+        },
+        {
+          "t_ms": 25000,
+          "latency_ms": 112.92,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 25500,
+          "latency_ms": 117.75,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 26000,
+          "latency_ms": 91.52,
+          "active_connections": 10
+        },
+        {
+          "t_ms": 26500,
+          "latency_ms": 86.09,
+          "active_connections": 11
+        },
+        {
+          "t_ms": 27000,
+          "latency_ms": 88.22,
+          "active_connections": 9
+        },
+        {
+          "t_ms": 27500,
+          "latency_ms": 77.89,
+          "active_connections": 6
+        },
+        {
+          "t_ms": 28000,
+          "latency_ms": 82.73,
+          "active_connections": 7
+        },
+        {
+          "t_ms": 28500,
+          "latency_ms": 81.2,
+          "active_connections": 6
+        },
+        {
+          "t_ms": 29000,
+          "latency_ms": 84.76,
+          "active_connections": 4
+        },
+        {
+          "t_ms": 29500,
+          "latency_ms": 91.08,
+          "active_connections": 4
+        }
+      ]
+    },
+    {
+      "name": "LeastConnections",
+      "summary": {
+        "avg_latency_ms": 118.47,
+        "peak_latency_ms": 356.89,
+        "p95_latency_ms": 166.52,
+        "total_tasks": 10000,
+        "throughput_rps": 333.33
+      },
+      "servers": [
+        {
+          "id": 0,
+          "weight": 4,
+          "capacity": 0.47,
+          "requests": 2765,
+          "total_time_ms": 468242,
+          "avg_time_ms": 169.35,
+          "share_pct": 27.65
+        },
+        {
+          "id": 1,
+          "weight": 4,
+          "capacity": 0.57,
+          "requests": 3353,
+          "total_time_ms": 253660,
+          "avg_time_ms": 75.65,
+          "share_pct": 33.53
+        },
+        {
+          "id": 2,
+          "weight": 1,
+          "capacity": 0.48,
+          "requests": 706,
+          "total_time_ms": 67414,
+          "avg_time_ms": 95.49,
+          "share_pct": 7.06
+        },
+        {
+          "id": 3,
+          "weight": 1,
+          "capacity": 0.81,
+          "requests": 1191,
+          "total_time_ms": 80490,
+          "avg_time_ms": 67.58,
+          "share_pct": 11.91
+        },
+        {
+          "id": 4,
+          "weight": 3,
+          "capacity": 0.45,
+          "requests": 1985,
+          "total_time_ms": 314875,
+          "avg_time_ms": 158.63,
+          "share_pct": 19.85
+        }
+      ],
+      "timeline": [
+        {
+          "t_ms": 0,
+          "latency_ms": 94.6,
+          "active_connections": 4
+        },
+        {
+          "t_ms": 500,
+          "latency_ms": 111.34,
+          "active_connections": 4
+        },
+        {
+          "t_ms": 1000,
+          "latency_ms": 114.53,
+          "active_connections": 6
+        },
+        {
+          "t_ms": 1500,
+          "latency_ms": 115.38,
+          "active_connections": 9
+        },
+        {
+          "t_ms": 2000,
+          "latency_ms": 135.87,
+          "active_connections": 10
+        },
+        {
+          "t_ms": 2500,
+          "latency_ms": 143.55,
+          "active_connections": 12
+        },
+        {
+          "t_ms": 3000,
+          "latency_ms": 139.14,
+          "active_connections": 11
+        },
+        {
+          "t_ms": 3500,
+          "latency_ms": 130.98,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 4000,
+          "latency_ms": 146.59,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 4500,
+          "latency_ms": 139.83,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 5000,
+          "latency_ms": 119.25,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 5500,
+          "latency_ms": 115.85,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 6000,
+          "latency_ms": 118.55,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 6500,
+          "latency_ms": 115.29,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 7000,
+          "latency_ms": 101.71,
+          "active_connections": 13
+        },
+        {
+          "t_ms": 7500,
+          "latency_ms": 111.4,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 8000,
+          "latency_ms": 106.74,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 8500,
+          "latency_ms": 107.14,
+          "active_connections": 19
+        },
+        {
+          "t_ms": 9000,
+          "latency_ms": 128.35,
+          "active_connections": 21
+        },
+        {
+          "t_ms": 9500,
+          "latency_ms": 137.7,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 10000,
+          "latency_ms": 131.35,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 10500,
+          "latency_ms": 149.03,
+          "active_connections": 26
+        },
+        {
+          "t_ms": 11000,
+          "latency_ms": 170.94,
+          "active_connections": 27
+        },
+        {
+          "t_ms": 11500,
+          "latency_ms": 179.41,
+          "active_connections": 24
+        },
+        {
+          "t_ms": 12000,
+          "latency_ms": 184.06,
+          "active_connections": 24
+        },
+        {
+          "t_ms": 12500,
+          "latency_ms": 188.29,
+          "active_connections": 30
+        },
+        {
+          "t_ms": 13000,
+          "latency_ms": 168.15,
+          "active_connections": 29
+        },
+        {
+          "t_ms": 13500,
+          "latency_ms": 169.83,
+          "active_connections": 24
+        },
+        {
+          "t_ms": 14000,
+          "latency_ms": 170.76,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 14500,
+          "latency_ms": 141.47,
+          "active_connections": 21
+        },
+        {
+          "t_ms": 15000,
+          "latency_ms": 138.26,
+          "active_connections": 24
+        },
+        {
+          "t_ms": 15500,
+          "latency_ms": 140.98,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 16000,
+          "latency_ms": 124.02,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 16500,
+          "latency_ms": 122.14,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 17000,
+          "latency_ms": 115.98,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 17500,
+          "latency_ms": 114.65,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 18000,
+          "latency_ms": 116.38,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 18500,
+          "latency_ms": 106.3,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 19000,
+          "latency_ms": 125.71,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 19500,
+          "latency_ms": 133.41,
+          "active_connections": 20
+        },
+        {
+          "t_ms": 20000,
+          "latency_ms": 139.55,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 20500,
+          "latency_ms": 147.14,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 21000,
+          "latency_ms": 150.05,
+          "active_connections": 28
+        },
+        {
+          "t_ms": 21500,
+          "latency_ms": 171.97,
+          "active_connections": 28
+        },
+        {
+          "t_ms": 22000,
+          "latency_ms": 182.78,
+          "active_connections": 28
+        },
+        {
+          "t_ms": 22500,
+          "latency_ms": 173.84,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 23000,
+          "latency_ms": 176.58,
+          "active_connections": 24
+        },
+        {
+          "t_ms": 23500,
+          "latency_ms": 158.46,
+          "active_connections": 26
+        },
+        {
+          "t_ms": 24000,
+          "latency_ms": 157.53,
+          "active_connections": 19
+        },
+        {
+          "t_ms": 24500,
+          "latency_ms": 135.27,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 25000,
+          "latency_ms": 124.39,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 25500,
+          "latency_ms": 106.91,
+          "active_connections": 13
+        },
+        {
+          "t_ms": 26000,
+          "latency_ms": 109.62,
+          "active_connections": 12
+        },
+        {
+          "t_ms": 26500,
+          "latency_ms": 99.26,
+          "active_connections": 10
+        },
+        {
+          "t_ms": 27000,
+          "latency_ms": 83.93,
+          "active_connections": 8
+        },
+        {
+          "t_ms": 27500,
+          "latency_ms": 76.3,
+          "active_connections": 7
+        },
+        {
+          "t_ms": 28000,
+          "latency_ms": 80.95,
+          "active_connections": 6
+        },
+        {
+          "t_ms": 28500,
+          "latency_ms": 85.23,
+          "active_connections": 5
+        },
+        {
+          "t_ms": 29000,
+          "latency_ms": 85.44,
+          "active_connections": 4
+        },
+        {
+          "t_ms": 29500,
+          "latency_ms": 89.98,
+          "active_connections": 5
+        }
+      ]
+    },
+    {
+      "name": "ConsistentHashing",
+      "summary": {
+        "avg_latency_ms": 117.39,
+        "peak_latency_ms": 331.0,
+        "p95_latency_ms": 192.51,
+        "total_tasks": 10000,
+        "throughput_rps": 333.33
+      },
+      "servers": [
+        {
+          "id": 0,
+          "weight": 4,
+          "capacity": 0.47,
+          "requests": 2377,
+          "total_time_ms": 341485,
+          "avg_time_ms": 143.66,
+          "share_pct": 23.77
+        },
+        {
+          "id": 1,
+          "weight": 4,
+          "capacity": 0.57,
+          "requests": 1773,
+          "total_time_ms": 187795,
+          "avg_time_ms": 105.92,
+          "share_pct": 17.73
+        },
+        {
+          "id": 2,
+          "weight": 1,
+          "capacity": 0.48,
+          "requests": 2274,
+          "total_time_ms": 380123,
+          "avg_time_ms": 167.16,
+          "share_pct": 22.74
+        },
+        {
+          "id": 3,
+          "weight": 1,
+          "capacity": 0.81,
+          "requests": 1686,
+          "total_time_ms": 100221,
+          "avg_time_ms": 59.44,
+          "share_pct": 16.86
+        },
+        {
+          "id": 4,
+          "weight": 3,
+          "capacity": 0.45,
+          "requests": 1890,
+          "total_time_ms": 164294,
+          "avg_time_ms": 86.93,
+          "share_pct": 18.9
+        }
+      ],
+      "timeline": [
+        {
+          "t_ms": 0,
+          "latency_ms": 87.49,
+          "active_connections": 3
+        },
+        {
+          "t_ms": 500,
+          "latency_ms": 106.71,
+          "active_connections": 5
+        },
+        {
+          "t_ms": 1000,
+          "latency_ms": 118.5,
+          "active_connections": 7
+        },
+        {
+          "t_ms": 1500,
+          "latency_ms": 119.11,
+          "active_connections": 9
+        },
+        {
+          "t_ms": 2000,
+          "latency_ms": 121.32,
+          "active_connections": 11
+        },
+        {
+          "t_ms": 2500,
+          "latency_ms": 142.87,
+          "active_connections": 11
+        },
+        {
+          "t_ms": 3000,
+          "latency_ms": 137.82,
+          "active_connections": 12
+        },
+        {
+          "t_ms": 3500,
+          "latency_ms": 149.46,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 4000,
+          "latency_ms": 126.62,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 4500,
+          "latency_ms": 138.85,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 5000,
+          "latency_ms": 131.26,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 5500,
+          "latency_ms": 127.68,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 6000,
+          "latency_ms": 120.23,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 6500,
+          "latency_ms": 109.32,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 7000,
+          "latency_ms": 105.07,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 7500,
+          "latency_ms": 106.46,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 8000,
+          "latency_ms": 111.56,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 8500,
+          "latency_ms": 108.05,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 9000,
+          "latency_ms": 122.82,
+          "active_connections": 20
+        },
+        {
+          "t_ms": 9500,
+          "latency_ms": 130.43,
+          "active_connections": 21
+        },
+        {
+          "t_ms": 10000,
+          "latency_ms": 135.79,
+          "active_connections": 19
+        },
+        {
+          "t_ms": 10500,
+          "latency_ms": 146.55,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 11000,
+          "latency_ms": 156.91,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 11500,
+          "latency_ms": 159.56,
+          "active_connections": 24
+        },
+        {
+          "t_ms": 12000,
+          "latency_ms": 179.77,
+          "active_connections": 28
+        },
+        {
+          "t_ms": 12500,
+          "latency_ms": 163.81,
+          "active_connections": 26
+        },
+        {
+          "t_ms": 13000,
+          "latency_ms": 175.55,
+          "active_connections": 26
+        },
+        {
+          "t_ms": 13500,
+          "latency_ms": 161.42,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 14000,
+          "latency_ms": 172.04,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 14500,
+          "latency_ms": 156.5,
+          "active_connections": 26
+        },
+        {
+          "t_ms": 15000,
+          "latency_ms": 146.86,
+          "active_connections": 21
+        },
+        {
+          "t_ms": 15500,
+          "latency_ms": 119.71,
+          "active_connections": 19
+        },
+        {
+          "t_ms": 16000,
+          "latency_ms": 125.04,
+          "active_connections": 20
+        },
+        {
+          "t_ms": 16500,
+          "latency_ms": 120.53,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 17000,
+          "latency_ms": 111.63,
+          "active_connections": 17
+        },
+        {
+          "t_ms": 17500,
+          "latency_ms": 107.4,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 18000,
+          "latency_ms": 102.56,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 18500,
+          "latency_ms": 103.91,
+          "active_connections": 16
+        },
+        {
+          "t_ms": 19000,
+          "latency_ms": 123.61,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 19500,
+          "latency_ms": 123.02,
+          "active_connections": 20
+        },
+        {
+          "t_ms": 20000,
+          "latency_ms": 132.48,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 20500,
+          "latency_ms": 140.27,
+          "active_connections": 22
+        },
+        {
+          "t_ms": 21000,
+          "latency_ms": 163.23,
+          "active_connections": 21
+        },
+        {
+          "t_ms": 21500,
+          "latency_ms": 173.23,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 22000,
+          "latency_ms": 173.29,
+          "active_connections": 23
+        },
+        {
+          "t_ms": 22500,
+          "latency_ms": 172.68,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 23000,
+          "latency_ms": 165.76,
+          "active_connections": 27
+        },
+        {
+          "t_ms": 23500,
+          "latency_ms": 158.7,
+          "active_connections": 25
+        },
+        {
+          "t_ms": 24000,
+          "latency_ms": 158.81,
+          "active_connections": 19
+        },
+        {
+          "t_ms": 24500,
+          "latency_ms": 129.01,
+          "active_connections": 15
+        },
+        {
+          "t_ms": 25000,
+          "latency_ms": 126.01,
+          "active_connections": 18
+        },
+        {
+          "t_ms": 25500,
+          "latency_ms": 109.95,
+          "active_connections": 14
+        },
+        {
+          "t_ms": 26000,
+          "latency_ms": 106.04,
+          "active_connections": 12
+        },
+        {
+          "t_ms": 26500,
+          "latency_ms": 96.16,
+          "active_connections": 11
+        },
+        {
+          "t_ms": 27000,
+          "latency_ms": 81.77,
+          "active_connections": 7
+        },
+        {
+          "t_ms": 27500,
+          "latency_ms": 77.6,
+          "active_connections": 6
+        },
+        {
+          "t_ms": 28000,
+          "latency_ms": 83.33,
+          "active_connections": 6
+        },
+        {
+          "t_ms": 28500,
+          "latency_ms": 78.69,
+          "active_connections": 6
+        },
+        {
+          "t_ms": 29000,
+          "latency_ms": 89.1,
+          "active_connections": 4
+        },
+        {
+          "t_ms": 29500,
+          "latency_ms": 91.08,
+          "active_connections": 5
+        }
+      ]
+    }
+  ]
+}
