@@ -7,6 +7,7 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <mutex>
 #include <random>
 #include <stdexcept>
 #include <string>
@@ -42,7 +43,9 @@ inline asio::awaitable<void> runClient(int group_index,
                                        int duration_ms,
                                        int total_request_limit,
                                        int global_seed,
-                                       std::shared_ptr<std::atomic<int>> shared_request_counter = nullptr) {
+                                       std::shared_ptr<std::atomic<int>> shared_request_counter = nullptr,
+                                       std::shared_ptr<std::mutex> timeline_mtx = nullptr,
+                                       std::shared_ptr<std::vector<double>> timeline_latencies = nullptr) {
     auto executor = co_await asio::this_coro::executor;
     asio::steady_timer timer(executor);
 
@@ -62,12 +65,10 @@ inline asio::awaitable<void> runClient(int group_index,
 
     while (true) {
         auto now = std::chrono::steady_clock::now();
-        if (now >= stop_time) {
+        if (now >= stop_time)
             break;
-        }
-        if (cfg.max_requests > 0 && requests_sent >= cfg.max_requests) {
+        if (cfg.max_requests > 0 && requests_sent >= cfg.max_requests)
             break;
-        }
 
         if (!cfg.active_windows.empty()) {
             auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - test_start).count();
@@ -91,9 +92,8 @@ inline asio::awaitable<void> runClient(int group_index,
             co_await timer.async_wait(asio::use_awaitable);
         }
 
-        if (std::chrono::steady_clock::now() >= stop_time) {
+        if (std::chrono::steady_clock::now() >= stop_time)
             break;
-        }
 
         if (total_request_limit > 0) {
             if (shared_request_counter) {
@@ -105,9 +105,8 @@ inline asio::awaitable<void> runClient(int group_index,
                         break;
                     }
                 }
-                if (!reserved) {
+                if (!reserved)
                     break;
-                }
             } else if (requests_sent >= total_request_limit) {
                 break;
             }
@@ -131,9 +130,8 @@ inline asio::awaitable<void> runClient(int group_index,
         auto request_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(cfg.retry.timeout_ms);
 
         for (int attempt = 0; attempt <= cfg.retry.max_retries; ++attempt) {
-            if (attempt > 0) {
+            if (attempt > 0)
                 ++retries;
-            }
             auto fut = manager.submitTask(task);
             try {
                 Duration dur;
@@ -162,9 +160,8 @@ inline asio::awaitable<void> runClient(int group_index,
                 fail_reason = "unknown";
                 break;
             }
-            if (attempt == cfg.retry.max_retries) {
+            if (attempt == cfg.retry.max_retries)
                 break;
-            }
             if (cfg.retry.timeout_ms > 0 && std::chrono::steady_clock::now() >= request_deadline) {
                 fail_reason = "timeout";
                 break;
@@ -174,8 +171,8 @@ inline asio::awaitable<void> runClient(int group_index,
             if (delay > 0.0) {
                 auto retry_delay = std::chrono::milliseconds(static_cast<int>(delay));
                 if (cfg.retry.timeout_ms > 0) {
-                    auto now = std::chrono::steady_clock::now();
-                    if (now + retry_delay >= request_deadline) {
+                    auto now_timer = std::chrono::steady_clock::now();
+                    if (now_timer + retry_delay >= request_deadline) {
                         timer.expires_at(request_deadline);
                         co_await timer.async_wait(asio::use_awaitable);
                         fail_reason = "timeout";
@@ -190,7 +187,13 @@ inline asio::awaitable<void> runClient(int group_index,
         stats.requests_sent++;
         if (success) {
             stats.successful++;
-            stats.latencies.push_back(static_cast<double>(total_latency.count()));
+            double lat_val = static_cast<double>(total_latency.count());
+            stats.latencies.push_back(lat_val);
+
+            if (timeline_mtx && timeline_latencies) {
+                std::lock_guard<std::mutex> lk(*timeline_mtx);
+                timeline_latencies->push_back(lat_val);
+            }
         } else {
             stats.failed++;
             if (fail_reason == "server_overloaded") {
