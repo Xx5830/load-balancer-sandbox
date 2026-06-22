@@ -1,0 +1,68 @@
+{
+  "name": "varReqCostHMS_medium",
+  "description": "",
+  "seed": 42,
+  "duration_ms": 15000,
+  "warmup_ms": 0,
+  "total_request_limit": 0,
+  "manager_workers": 0,
+  "servers": [
+    {
+      "weight": 10,
+      "capacity": 1.0,
+      "background_load": {
+        "type": "constant",
+        "value": 0
+      },
+      "max_parallel_requests": 2,
+      "start_at_ms": 0
+    },
+    {
+      "weight": 10,
+      "capacity": 1.0,
+      "background_load": {
+        "type": "constant",
+        "value": 0
+      },
+      "max_parallel_requests": 2,
+      "start_at_ms": 0
+    },
+    {
+      "weight": 10,
+      "capacity": 1.0,
+      "background_load": {
+        "type": "constant",
+        "value": 0
+      },
+      "max_parallel_requests": 2,
+      "start_at_ms": 0
+    },
+    {
+      "weight": 10,
+      "capacity": 1.0,
+      "background_load": {
+        "type": "constant",
+        "value": 0
+      },
+      "max_parallel_requests": 2,
+      "start_at_ms": 0
+    }
+  ],
+  "client_groups": [
+    {
+      "count": 200,
+      "sticky_scope": "none",
+      "inter_arrival_ms": {
+        "type": "uniform",
+        "min": 0,
+        "max": 10000
+      },
+      "task_cost": {
+        "type": "uniform",
+        "min": 0.01,
+        "max": 10
+      },
+      "max_requests": 1
+    }
+  ]
+}

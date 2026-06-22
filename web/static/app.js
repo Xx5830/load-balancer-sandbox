@@ -370,6 +370,7 @@ function renderDetail(r, idx, host) {
   if (res.client_groups?.length) panel.append(groupTable(res.client_groups));
 
   drawTimeline(ids[0], res.timeline || [], c);
+  res.latency.histogram.buckets = res.latency.histogram.buckets.map(value => value + res.latency.min)
   drawHistogram(ids[1], res.latency.histogram, c);
   drawServerLoad(ids[2], res.servers);
   drawServerReq(ids[3], res.servers, c);
