@@ -48,12 +48,27 @@ struct BenchmarkStats {
         out["latency"]["percentiles"]["p50"] = p50_latency_ms;
         out["latency"]["percentiles"]["p95"] = p95_latency_ms;
         out["latency"]["percentiles"]["p99"] = p99_latency_ms;
-        out["latency"]["histogram"] = {{"bucket_size_ms", 0.0}, {"buckets", nlohmann::json::array()}};
+
+        size_t bucket_count = 5;
+        double bucket_size = (max_latency_ms - min_latency_ms) / static_cast<double>(bucket_count);
+        std::vector<size_t> latency_buckets(bucket_count, 0);
+
+        for (const double& latency : latencies) {
+            double latency_delta = latency - min_latency_ms;
+            size_t index = static_cast<size_t>(std::floor(latency_delta / (bucket_size + 1)));
+            ++latency_buckets[index];
+        }
+
+        out["latency"]["histogram"] = {
+            {"bucket_size_ms", bucket_size}, 
+            {"buckets", latency_buckets}
+        };
 
         out["failures"]["total_final_failures"] = failed;
         out["failures"]["by_reason"]["server_crashed"] = server_crashed_failures;
         out["failures"]["by_reason"]["server_overloaded"] = server_overloaded_failures;
         out["failures"]["by_reason"]["timeout"] = timeout_failures;
+        out["failures"]["by_reason"]["unknown"] = unknown_failures;
 
         out["timeline"] = nlohmann::json::array();
         out["servers"] = nlohmann::json::array();
