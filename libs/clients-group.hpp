@@ -29,6 +29,7 @@ struct ClientStats {
     int server_crashed_failures = 0;
     int server_overloaded_failures = 0;
     int timeout_failures = 0;
+    int unknown_failures = 0;
     std::vector<double> latencies;
 };
 
@@ -129,10 +130,23 @@ inline asio::awaitable<void> runClient(int group_index,
 
         auto request_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(cfg.retry.timeout_ms);
 
-        while (retries <= cfg.retry.max_retries) {
+        for (int attempt = 0; attempt <= cfg.retry.max_retries; ++attempt) {
+            if (attempt > 0) {
+                ++retries;
+            }
             auto fut = manager.submitTask(task);
             try {
-                auto dur = co_await await_future(std::move(fut));
+                Duration dur;
+                if (cfg.retry.timeout_ms > 0) {
+                    auto maybe_duration = co_await await_future_until(std::move(fut), request_deadline);
+                    if (!maybe_duration) {
+                        fail_reason = "timeout";
+                        break;
+                    }
+                    dur = *maybe_duration;
+                } else {
+                    dur = co_await await_future(std::move(fut));
+                }
                 total_latency += dur;
                 success = true;
                 break;
@@ -140,20 +154,36 @@ inline asio::awaitable<void> runClient(int group_index,
                 fail_reason = "server_overloaded";
             } catch (const ServerCrashed&) {
                 fail_reason = "server_crashed";
+            } catch (const NoServerAvailable&) {
+                fail_reason = "unknown";
+            } catch (const NoPolicy&) {
+                fail_reason = "unknown";
             } catch (...) {
-                // Неизвестные исключения не ожидаются, но чтобы не падать, считаем крахом сервера
-                fail_reason = "server_crashed";
+                fail_reason = "unknown";
                 break;
             }
-            ++retries;
-            if (retries <= cfg.retry.max_retries) {
-                double delay = cfg.retry.delay_gen->next(rng);
-                timer.expires_after(std::chrono::milliseconds(static_cast<int>(delay)));
-                co_await timer.async_wait(asio::use_awaitable);
-                if (cfg.retry.timeout_ms > 0 && std::chrono::steady_clock::now() > request_deadline) {
-                    fail_reason = "timeout";
-                    break;
+            if (attempt == cfg.retry.max_retries) {
+                break;
+            }
+            if (cfg.retry.timeout_ms > 0 && std::chrono::steady_clock::now() >= request_deadline) {
+                fail_reason = "timeout";
+                break;
+            }
+
+            double delay = cfg.retry.delay_gen->next(rng);
+            if (delay > 0.0) {
+                auto retry_delay = std::chrono::milliseconds(static_cast<int>(delay));
+                if (cfg.retry.timeout_ms > 0) {
+                    auto now = std::chrono::steady_clock::now();
+                    if (now + retry_delay >= request_deadline) {
+                        timer.expires_at(request_deadline);
+                        co_await timer.async_wait(asio::use_awaitable);
+                        fail_reason = "timeout";
+                        break;
+                    }
                 }
+                timer.expires_after(retry_delay);
+                co_await timer.async_wait(asio::use_awaitable);
             }
         }
 
@@ -167,6 +197,8 @@ inline asio::awaitable<void> runClient(int group_index,
                 stats.server_overloaded_failures++;
             } else if (fail_reason == "timeout") {
                 stats.timeout_failures++;
+            } else if (fail_reason == "unknown") {
+                stats.unknown_failures++;
             } else {
                 stats.server_crashed_failures++;
             }

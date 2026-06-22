@@ -108,6 +108,7 @@ class Benchmark {
                 stats.server_crashed_failures += st.server_crashed_failures;
                 stats.server_overloaded_failures += st.server_overloaded_failures;
                 stats.timeout_failures += st.timeout_failures;
+                stats.unknown_failures += st.unknown_failures;
                 stats.latencies.insert(stats.latencies.end(), st.latencies.begin(), st.latencies.end());
             }
         }
