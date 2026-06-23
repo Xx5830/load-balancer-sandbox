@@ -18,7 +18,7 @@ build preset = "release":
     cmake --build --preset {{preset}}
 
 #Запуск тестов
-test preset = "debug": build  
+test preset = "debug": (build preset)
     ctest --preset {{preset}}
 
 #Группируем проект в файл

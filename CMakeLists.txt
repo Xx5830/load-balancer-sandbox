@@ -46,6 +46,20 @@ if(NOT TARGET asio)
     target_compile_definitions(asio INTERFACE ASIO_STANDALONE)
 endif()
 
+if(BUILD_TESTING)
+    set(JSON_VALIDATOR_INSTALL OFF CACHE BOOL "" FORCE)
+    set(JSON_VALIDATOR_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(
+        json_schema_validator
+        GIT_REPOSITORY https://github.com/pboettch/json-schema-validator.git
+        GIT_TAG 2.3.0
+    )
+    FetchContent_MakeAvailable(json_schema_validator)
+    if(json_schema_validator_POPULATED)
+        message(STATUS "json-schema-validator: загружен (2.3.0)")
+    endif()
+endif()
+
 add_subdirectory(libs)
 add_subdirectory(bin)
 
