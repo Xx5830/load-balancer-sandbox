@@ -1,0 +1,67 @@
+{
+  "name": "burstNorm_reversed_hard",
+  "description": "",
+  "seed": 42,
+  "duration_ms": 30000,
+  "warmup_ms": 0,
+  "total_request_limit": 0,
+  "manager_workers": 0,
+  "servers": [
+    {
+      "weight": 20,
+      "capacity": 1.0,
+      "background_load": {
+        "type": "constant",
+        "value": 0
+      },
+      "max_parallel_requests": 2,
+      "start_at_ms": 0
+    },
+    {
+      "weight": 15,
+      "capacity": 1.0,
+      "background_load": {
+        "type": "constant",
+        "value": 0
+      },
+      "max_parallel_requests": 2,
+      "start_at_ms": 0
+    },
+    {
+      "weight": 10,
+      "capacity": 1.0,
+      "background_load": {
+        "type": "constant",
+        "value": 0
+      },
+      "max_parallel_requests": 2,
+      "start_at_ms": 0
+    },
+    {
+      "weight": 5,
+      "capacity": 1.0,
+      "background_load": {
+        "type": "constant",
+        "value": 0
+      },
+      "max_parallel_requests": 2,
+      "start_at_ms": 0
+    }
+  ],
+  "client_groups": [
+    {
+      "count": 500,
+      "sticky_scope": "none",
+      "inter_arrival_ms": {
+        "type": "normal",
+        "center": 5000,
+        "deviation": 500
+      },
+      "task_cost": {
+        "type": "constant",
+        "value": 10
+      },
+      "max_requests": 1
+    }
+  ]
+}
