@@ -34,6 +34,13 @@ ClientGroupConfig makeGroup() {
     return grp;
 }
 
+std::shared_ptr<ServerManager> makeManager() {
+    auto mgr = std::make_shared<ServerManager>(std::make_unique<LoadBalancer>(), 0);
+    mgr->setPickPolicy<RoundRobinPick>();
+    mgr->addServer(1);
+    return mgr;
+}
+
 ClientStats runOnce(std::shared_ptr<ServerManager> mgr, const ClientGroupConfig& grp, int duration_ms) {
     asio::io_context io;
     auto stats = std::make_shared<ClientStats>();
@@ -47,9 +54,7 @@ ClientStats runOnce(std::shared_ptr<ServerManager> mgr, const ClientGroupConfig&
 
 // За окно работы клиент отправляет хотя бы один запрос.
 TEST(RunClient, SendsRequests) {
-    auto mgr = std::make_shared<ServerManager>(std::make_unique<LoadBalancer>(), 0);
-    mgr->setPickPolicy<RoundRobinPick>();
-    mgr->addServer(1);
+    auto mgr = makeManager();
 
     auto stats = runOnce(mgr, makeGroup(), 100);
     EXPECT_GT(stats.requests_sent, 0);
@@ -58,9 +63,7 @@ TEST(RunClient, SendsRequests) {
 
 // Успешные запросы добавляют ровно одну латентность каждый.
 TEST(RunClient, SuccessfulRequestsRecordLatency) {
-    auto mgr = std::make_shared<ServerManager>(std::make_unique<LoadBalancer>(), 0);
-    mgr->setPickPolicy<RoundRobinPick>();
-    mgr->addServer(1);
+    auto mgr = makeManager();
 
     auto stats = runOnce(mgr, makeGroup(), 100);
     EXPECT_EQ(stats.latencies.size(), static_cast<size_t>(stats.successful));
@@ -68,9 +71,7 @@ TEST(RunClient, SuccessfulRequestsRecordLatency) {
 
 // max_requests ограничивает число отправленных запросов.
 TEST(RunClient, RespectsMaxRequests) {
-    auto mgr = std::make_shared<ServerManager>(std::make_unique<LoadBalancer>(), 0);
-    mgr->setPickPolicy<RoundRobinPick>();
-    mgr->addServer(1);
+    auto mgr = makeManager();
 
     auto grp = makeGroup();
     grp.max_requests = 3;
@@ -80,9 +81,7 @@ TEST(RunClient, RespectsMaxRequests) {
 
 // Один клиентский запрос отправляет на сервер ровно одну задачу.
 TEST(RunClient, SubmitsOneServerTaskPerRequest) {
-    auto mgr = std::make_shared<ServerManager>(std::make_unique<LoadBalancer>(), 0);
-    mgr->setPickPolicy<RoundRobinPick>();
-    mgr->addServer(1);
+    auto mgr = makeManager();
 
     auto grp = makeGroup();
     grp.max_requests = 1;
