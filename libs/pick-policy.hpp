@@ -163,7 +163,8 @@ struct ConsistentHashingPick : IPickPolicy {
             return std::nullopt;
         }
 
-        const uint64_t hash = std::hash<uint64_t>{}(request_id);
+        const uint64_t hash = mix64(request_id);
+
         auto it = ring_.lower_bound(hash);
         if (it == ring_.end()) {
             it = ring_.begin();

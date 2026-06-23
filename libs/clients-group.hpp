@@ -36,9 +36,9 @@ struct ClientStats {
 
 inline asio::awaitable<void> runClient(int group_index,
                                        int client_index,
-                                       const ClientGroupConfig& cfg,
-                                       ServerManager& manager,
-                                       ClientStats& stats,
+                                       ClientGroupConfig cfg,
+                                       std::shared_ptr<ServerManager> manager,
+                                       std::shared_ptr<ClientStats> stats,
                                        std::chrono::steady_clock::time_point test_start,
                                        int duration_ms,
                                        int total_request_limit,
@@ -56,9 +56,9 @@ inline asio::awaitable<void> runClient(int group_index,
 
     uint64_t base_id = 0;
     if (cfg.sticky_scope == Client) {
-        base_id = static_cast<uint64_t>(group_index) * 10000 + client_index;
+        base_id = static_cast<uint64_t>(group_index) * 1000000ULL + client_index;
     } else if (cfg.sticky_scope == Group) {
-        base_id = static_cast<uint64_t>(group_index) * 10000;
+        base_id = static_cast<uint64_t>(group_index) * 1000000ULL;
     }
 
     int request_counter = 0;
@@ -116,7 +116,8 @@ inline asio::awaitable<void> runClient(int group_index,
 
         uint64_t task_id;
         if (cfg.sticky_scope == None) {
-            task_id = static_cast<uint64_t>(group_index) * 1000000 + request_counter;
+            task_id =
+                static_cast<uint64_t>(group_index) * 1000000000ULL + static_cast<uint64_t>(client_index) * 1000000ULL + request_counter;
         } else {
             task_id = base_id;
         }
@@ -132,7 +133,7 @@ inline asio::awaitable<void> runClient(int group_index,
         for (int attempt = 0; attempt <= cfg.retry.max_retries; ++attempt) {
             if (attempt > 0)
                 ++retries;
-            auto fut = manager.submitTask(task);
+            auto fut = manager->submitTask(task);
             try {
                 Duration dur;
                 if (cfg.retry.timeout_ms > 0) {
@@ -184,29 +185,29 @@ inline asio::awaitable<void> runClient(int group_index,
             }
         }
 
-        stats.requests_sent++;
+        stats->requests_sent++;
         if (success) {
-            stats.successful++;
+            stats->successful++;
             double lat_val = static_cast<double>(total_latency.count());
-            stats.latencies.push_back(lat_val);
+            stats->latencies.push_back(lat_val);
 
             if (timeline_mtx && timeline_latencies) {
                 std::lock_guard<std::mutex> lk(*timeline_mtx);
                 timeline_latencies->push_back(lat_val);
             }
         } else {
-            stats.failed++;
+            stats->failed++;
             if (fail_reason == "server_overloaded") {
-                stats.server_overloaded_failures++;
+                stats->server_overloaded_failures++;
             } else if (fail_reason == "timeout") {
-                stats.timeout_failures++;
+                stats->timeout_failures++;
             } else if (fail_reason == "unknown") {
-                stats.unknown_failures++;
+                stats->unknown_failures++;
             } else {
-                stats.server_crashed_failures++;
+                stats->server_crashed_failures++;
             }
         }
-        stats.retries += retries;
+        stats->retries += retries;
 
         ++requests_sent;
         ++request_counter;

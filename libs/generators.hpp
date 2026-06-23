@@ -3,10 +3,12 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <random>
 #include <span>
 #include <vector>
+
 namespace load_balancer {
 
 enum class GeneratorType { SEQUENCE, UNIFORM, NORMAL, EXPONENTIAL, LOGNORMAL };
@@ -33,6 +35,7 @@ struct SequenceGenerator : public IGenerator {
    private:
     std::vector<double> seq_;
     size_t pos_;
+    std::mutex mtx_;
 
    public:
     SequenceGenerator(std::span<double> seq) {
@@ -42,7 +45,8 @@ struct SequenceGenerator : public IGenerator {
             seq_[index] = seq[index];
         }
     }
-    double next(std::mt19937&) {
+    double next(std::mt19937&) override {
+        std::lock_guard<std::mutex> lock(mtx_);
         if (pos_ >= seq_.size()) {
             pos_ = 0;
         }
@@ -55,11 +59,13 @@ class UniformGenerator : public IGenerator {
     UniformGenerator(double min, double max)
         : dist_(min, max) {}
     double next(std::mt19937& rng) override {
+        std::lock_guard<std::mutex> lock(mtx_);
         return dist_(rng);
     }
 
    private:
     std::uniform_real_distribution<double> dist_;
+    std::mutex mtx_;
 };
 
 class NormalGenerator : public IGenerator {
@@ -70,6 +76,7 @@ class NormalGenerator : public IGenerator {
         , max_(max) {}
 
     double next(std::mt19937& rng) override {
+        std::lock_guard<std::mutex> lock(mtx_);
         double val = dist_(rng);
         if (min_) {
             val = std::max(*min_, val);
@@ -83,6 +90,7 @@ class NormalGenerator : public IGenerator {
    private:
     std::normal_distribution<double> dist_;
     std::optional<double> min_, max_;
+    std::mutex mtx_;
 };
 
 class ExponentialGenerator : public IGenerator {
@@ -90,11 +98,13 @@ class ExponentialGenerator : public IGenerator {
     explicit ExponentialGenerator(double mean)
         : dist_(1.0 / mean) {}
     double next(std::mt19937& rng) override {
+        std::lock_guard<std::mutex> lock(mtx_);
         return dist_(rng);
     }
 
    private:
     std::exponential_distribution<double> dist_;
+    std::mutex mtx_;
 };
 
 class LognormalGenerator : public IGenerator {
@@ -104,6 +114,7 @@ class LognormalGenerator : public IGenerator {
         , min_(min)
         , max_(max) {}
     double next(std::mt19937& rng) override {
+        std::lock_guard<std::mutex> lock(mtx_);
         double val = dist_(rng);
         if (min_) {
             val = std::max(*min_, val);
@@ -117,6 +128,7 @@ class LognormalGenerator : public IGenerator {
    private:
     std::lognormal_distribution<double> dist_;
     std::optional<double> min_, max_;
+    std::mutex mtx_;
 };
 
 using GeneratorPtr = std::shared_ptr<IGenerator>;
