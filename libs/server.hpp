@@ -104,15 +104,13 @@ class Server {
 
     Duration estimateDurationLocked(const Task& task) const {
         double effective_load = load_ + background_load_value_;
-        if (effective_load > 1.0) {
+        if (effective_load > 1.0)
             effective_load = 1.0;
-        }
         double available_factor = std::max(params_.min_weight_factor_, 1.0 - effective_load * params_.load_slowdown_factor_);
         double effective_power = static_cast<double>(weight_) * capacity_ * available_factor;
         double seconds = static_cast<double>(task.getCost()) / std::max(1e-9, effective_power);
-        if (seconds < params_.min_task_seconds_) {
+        if (seconds < params_.min_task_seconds_)
             seconds = params_.min_task_seconds_;
-        }
         return std::chrono::duration_cast<Duration>(std::chrono::duration<double>(seconds));
     }
 
@@ -152,10 +150,11 @@ class Server {
 
                 if (stop_) {
                     while (!queue_.empty()) {
-                        queue_.front().promise.set_exception(std::make_exception_ptr(ServerCrashed{}));
+                        auto p = std::move(queue_.front().promise);
                         queue_.pop();
                         failed_.fetch_add(1);
                         cnt_connects_.fetch_sub(1);
+                        p.set_exception(std::make_exception_ptr(ServerCrashed{}));
                     }
                     return;
                 }
@@ -174,12 +173,10 @@ class Server {
 
                 if (params_.reject_threshold_seconds_ > 0.0) {
                     double threshold_ms = params_.reject_threshold_seconds_ * 1000.0 * (1.0 - load_ * params_.overload_reject_factor_);
-                    if (threshold_ms < 0.0) {
+                    if (threshold_ms < 0.0)
                         threshold_ms = 0.0;
-                    }
-                    if (planned.count() > threshold_ms) {
+                    if (planned.count() > threshold_ms)
                         reject = true;
-                    }
                 }
 
                 if (!reject) {
@@ -189,9 +186,9 @@ class Server {
             }
 
             if (reject) {
-                prom.set_exception(std::make_exception_ptr(ServerOverloaded{}));
                 failed_.fetch_add(1);
                 cnt_connects_.fetch_sub(1);
+                prom.set_exception(std::make_exception_ptr(ServerOverloaded{}));
                 continue;
             }
 
@@ -207,8 +204,6 @@ class Server {
                 refreshLoadLocked(end);
                 load_snapshot = load_;
             }
-
-            prom.set_value(actual_duration);
 
             successful_.fetch_add(1);
             auto ms = static_cast<uint64_t>(actual_duration.count());
@@ -228,7 +223,10 @@ class Server {
                 if (load_snapshot > peak_load_)
                     peak_load_ = load_snapshot;
             }
+
             cnt_connects_.fetch_sub(1);
+
+            prom.set_value(actual_duration);
         }
     }
 
@@ -244,9 +242,8 @@ class Server {
         , max_parallel_requests_(max_parallel_requests)
         , params_(std::move(params))
         , background_load_source_(std::move(background_load_source)) {
-        if (weight_ == 0) {
+        if (weight_ == 0)
             throw std::invalid_argument("Server weight must be > 0");
-        }
         last_update_ = Clock::now();
         for (uint32_t i = 0; i < max_parallel_requests_; ++i) {
             workers_.emplace_back(&Server::workerLoop, this);
@@ -262,9 +259,9 @@ class Server {
         {
             std::lock_guard lk(queue_mutex_);
             if (stop_) {
-                res.set_exception(std::make_exception_ptr(ServerCrashed{}));
                 failed_.fetch_add(1);
                 cnt_connects_.fetch_sub(1);
+                res.set_exception(std::make_exception_ptr(ServerCrashed{}));
                 return fut;
             }
             queue_.push({std::move(task), std::move(res)});
@@ -333,9 +330,8 @@ class Server {
 
         {
             std::lock_guard<std::mutex> lk(load_stats_mutex_);
-            if (load_count_ > 0) {
+            if (load_count_ > 0)
                 s.avg_load_ = load_sum_ / load_count_;
-            }
             s.peak_load_ = peak_load_;
         }
         s.crashes_ = crashes_.load();
@@ -345,9 +341,8 @@ class Server {
     ~Server() {
         crash();
         for (auto& w : workers_) {
-            if (w.joinable()) {
+            if (w.joinable())
                 w.join();
-            }
         }
     }
 };

@@ -75,10 +75,13 @@ class Benchmark {
             }
         }
 
-        std::vector<std::vector<ClientStats>> all_stats;
+        std::vector<std::vector<std::shared_ptr<ClientStats>>> all_stats;
         all_stats.resize(config_.client_groups.size());
         for (size_t g = 0; g < config_.client_groups.size(); ++g) {
             all_stats[g].resize(config_.client_groups[g].count);
+            for (int i = 0; i < config_.client_groups[g].count; ++i) {
+                all_stats[g][i] = std::make_shared<ClientStats>();
+            }
         }
 
         auto shared_request_counter = std::make_shared<std::atomic<int>>(0);
@@ -94,7 +97,7 @@ class Benchmark {
                                runClient(static_cast<int>(g),
                                          i,
                                          group_cfg,
-                                         *manager,
+                                         manager,
                                          all_stats[g][i],
                                          test_start,
                                          config_.duration_ms,
@@ -153,7 +156,8 @@ class Benchmark {
             cg_res.num_clients = config_.client_groups[g].count;
 
             std::vector<double> grp_latencies;
-            for (auto& st : all_stats[g]) {
+            for (auto& st_ptr : all_stats[g]) {
+                auto& st = *st_ptr;
                 stats.total_requests += st.requests_sent;
                 stats.successful += st.successful;
                 stats.failed += st.failed;
