@@ -264,7 +264,8 @@ class Server {
                 res.set_exception(std::make_exception_ptr(ServerCrashed{}));
                 return fut;
             }
-            queue_.push({std::move(task), std::move(res)});
+            TaskItem item{std::move(task), std::move(res)};
+            queue_.push(std::move(item));
         }
         cv_.notify_one();
         return fut;
