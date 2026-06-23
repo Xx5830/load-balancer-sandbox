@@ -14,6 +14,10 @@ namespace load_balancer {
 
 enum class Algorithm { RoundRobin, WeightRoundRobin, LeastConnections, ConsistentHashing };
 
+inline bool isPickable(const ServerPtr& server) {
+    return server && !server->isCrashed();
+}
+
 struct IPickPolicy {
     virtual std::optional<ServerPtr> pickServer(uint64_t request_id, const std::vector<ServerPtr>& servers) = 0;
 
@@ -39,9 +43,14 @@ struct RoundRobinPick : IPickPolicy {
             index_ = 0;
         }
 
-        ServerPtr selected = servers[index_];
-        index_ = (index_ + 1) % servers.size();
-        return selected;
+        for (size_t step = 0; step < servers.size(); ++step) {
+            ServerPtr candidate = servers[index_];
+            index_ = (index_ + 1) % servers.size();
+            if (isPickable(candidate)) {
+                return candidate;
+            }
+        }
+        return std::nullopt;
     }
 
     void resetServers(const std::vector<ServerPtr>& servers) override {
@@ -70,6 +79,17 @@ struct WeightRoundRobinPick : IPickPolicy {
         }
 
         normalizeLocked(servers);
+
+        for (size_t step = 0; step < servers.size(); ++step) {
+            if (isPickable(servers[index_])) {
+                break;
+            }
+            index_ = (index_ + 1) % servers.size();
+            remaining_for_current_ = 0;
+        }
+        if (!isPickable(servers[index_])) {
+            return std::nullopt;
+        }
 
         if (remaining_for_current_ == 0) {
             remaining_for_current_ = servers[index_]->getWeight();
@@ -119,19 +139,21 @@ struct LeastConnectionsPick : IPickPolicy {
             return std::nullopt;
         }
 
-        size_t best = 0;
-        uint32_t best_connections = servers[0]->getConnects();
+        std::optional<ServerPtr> best;
+        uint32_t best_connections = 0;
 
-        for (size_t index = 1; index < servers.size(); ++index) {
-            uint32_t current_connections = servers[index]->getConnects();
-
-            if (current_connections < best_connections) {
-                best = index;
+        for (const ServerPtr& server : servers) {
+            if (!isPickable(server)) {
+                continue;
+            }
+            uint32_t current_connections = server->getConnects();
+            if (!best || current_connections < best_connections) {
+                best = server;
                 best_connections = current_connections;
             }
         }
 
-        return servers[best];
+        return best;
     }
 };
 
@@ -169,8 +191,17 @@ struct ConsistentHashingPick : IPickPolicy {
         if (it == ring_.end()) {
             it = ring_.begin();
         }
-
-        return it->second;
+        
+        for (size_t step = 0; step < ring_.size(); ++step) {
+            if (isPickable(it->second)) {
+                return it->second;
+            }
+            ++it;
+            if (it == ring_.end()) {
+                it = ring_.begin();
+            }
+        }
+        return std::nullopt;
     }
 
    private:
