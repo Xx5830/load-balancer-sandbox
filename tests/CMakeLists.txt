@@ -12,8 +12,6 @@ file(GLOB ALL_TESTS CONFIGURE_DEPENDS "*.cpp")
 
 add_executable(testing ${ALL_TESTS})
 
-target_include_directories(testing PRIVATE ${json_schema_validator_SOURCE_DIR}/include)
-
 target_link_libraries(testing PRIVATE library gtest_main nlohmann_json_schema_validator)
 
 target_compile_definitions(testing PRIVATE SCHEMS_DIR="${CMAKE_SOURCE_DIR}/schems")

@@ -347,33 +347,65 @@ function renderDetail(r, idx, host) {
   const c = color(idx);
   const panel = host;
 
+  const t = res.totals;
   const f = res.failures.by_reason;
+  const ru = (n) => (n ?? 0).toLocaleString("ru-RU");
+
+  if (res.experiment || res.config) panel.append(experimentBlock(res));
+
   panel.append(el("div", "cards", [
-    card("Длительность", fmt(res.totals.actual_duration_ms / 1000, 1), "с"),
-    card("Успешно", res.totals.successful.toLocaleString("ru-RU"), "", "card--accent"),
-    card("Отказы", res.failures.total_final_failures.toLocaleString("ru-RU"), "", "card--danger"),
-    card("p99", fmt(res.latency.percentiles.p99), "мс", "card--warn"),
+    card("Длительность", fmt(t.actual_duration_ms / 1000, 1), "с"),
+    card("RPS", fmt(t.throughput_rps), ""),
+    card("Отправлено", ru(t.requests_sent), ""),
+    card("Успешно", ru(t.successful), "", "card--accent"),
+    card("Отказы", ru(t.failed_final), "", "card--danger"),
+    card("Повторы", ru(t.retries), ""),
   ].join("")));
 
+  panel.append(latencyBlock(res.latency));
+
   panel.append(el("div", "subhint",
-    `Отказы: crashed ${f.server_crashed} · overloaded ${f.server_overloaded} · timeout ${f.timeout}`));
+    `Отказы (${ru(res.failures.total_final_failures)}): crashed ${ru(f.server_crashed)} · ` +
+    `overloaded ${ru(f.server_overloaded)} · timeout ${ru(f.timeout)}`));
 
   const grid = el("div", "grid-2");
-  const ids = [`tl-${idx}`, `hist-${idx}`, `srvload-${idx}`, `srvreq-${idx}`];
+  const ids = [`tl-${idx}`, `tlreq-${idx}`, `hist-${idx}`, `srvload-${idx}`, `srvreq-${idx}`];
   grid.append(canvasPanel(ids[0], "Таймлайн: латентность и соединения"));
-  grid.append(canvasPanel(ids[1], "Гистограмма латентности"));
-  grid.append(canvasPanel(ids[2], "Нагрузка серверов (avg/peak)"));
-  grid.append(canvasPanel(ids[3], "Запросы по серверам"));
+  grid.append(canvasPanel(ids[1], "Таймлайн: запросы и нагрузка"));
+  grid.append(canvasPanel(ids[2], "Гистограмма латентности"));
+  grid.append(canvasPanel(ids[3], "Нагрузка серверов (avg/peak)"));
+  grid.append(canvasPanel(ids[4], "Запросы по серверам"));
   panel.append(grid);
 
   panel.append(serverTable(res.servers));
   if (res.client_groups?.length) panel.append(groupTable(res.client_groups));
 
-  drawTimeline(ids[0], res.timeline || [], c);
-  res.latency.histogram.buckets = res.latency.histogram.buckets.map(value => value + res.latency.min)
-  drawHistogram(ids[1], res.latency.histogram, c);
-  drawServerLoad(ids[2], res.servers);
-  drawServerReq(ids[3], res.servers, c);
+  const tl = res.timeline || [];
+  drawTimeline(ids[0], tl, c);
+  drawTimelineLoad(ids[1], tl, c);
+  drawHistogram(ids[2], res.latency.histogram, res.latency.min, c);
+  drawServerLoad(ids[3], res.servers);
+  drawServerReq(ids[4], res.servers, c);
+}
+
+function drawTimelineLoad(id, tl, c) {
+  chart(id, {
+    type: "line",
+    data: { labels: tl.map((p) => (p.t_ms / 1000).toFixed(0)), datasets: [
+      { label: "новые запросы", data: tl.map((p) => p.new_requests ?? null), borderColor: c, backgroundColor: c + "22", fill: true, tension: 0.3, pointRadius: 0, yAxisID: "y" },
+      { label: "отказы/с", data: tl.map((p) => p.failed_this_second ?? null), borderColor: PALETTE[3], tension: 0.3, pointRadius: 0, yAxisID: "y" },
+      { label: "в полёте", data: tl.map((p) => p.requests_in_flight ?? null), borderColor: PALETTE[2], tension: 0.3, pointRadius: 0, yAxisID: "y" },
+      { label: "ср. нагрузка", data: tl.map((p) => p.total_load_avg ?? null), borderColor: PALETTE[1], tension: 0.3, pointRadius: 0, yAxisID: "y1" },
+    ] },
+    options: {
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { title: { display: true, text: "время, с" }, grid: { display: false } },
+        y: { beginAtZero: true, position: "left", title: { display: true, text: "запросов/с" } },
+        y1: { beginAtZero: true, max: 1, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "нагрузка" } },
+      },
+    },
+  });
 }
 
 function card(label, value, unit, cls = "") {
@@ -400,12 +432,13 @@ function drawTimeline(id, tl, c) {
   });
 }
 
-function drawHistogram(id, h, c) {
+function drawHistogram(id, h, min, c) {
   const size = h?.bucket_size_ms || 1;
   const buckets = h?.buckets || [];
+  const base = min ?? 0;
   chart(id, {
     type: "bar",
-    data: { labels: buckets.map((_, i) => (i * size).toFixed(0)),
+    data: { labels: buckets.map((_, i) => `${(base + i * size).toFixed(0)}–${(base + (i + 1) * size).toFixed(0)}`),
       datasets: [{ label: "запросов", data: buckets, backgroundColor: c }] },
     options: { plugins: { legend: { display: false } },
       scales: { x: { title: { display: true, text: "латентность, мс" }, grid: { display: false } },
@@ -435,18 +468,74 @@ function drawServerReq(id, servers, c) {
   });
 }
 
+const SMP_LABELS = {
+  task_load_factor: "task_load_factor", connection_load_factor: "connection_load_factor",
+  load_slowdown_factor: "load_slowdown_factor", load_recovery_rate: "load_recovery_rate",
+  overload_reject_factor: "overload_reject_factor", reject_threshold_seconds: "reject_threshold_seconds",
+  min_task_seconds: "min_task_seconds", min_weight_factor: "min_weight_factor",
+};
+
+function kvList(pairs) {
+  const dl = el("div", "kv");
+  dl.innerHTML = pairs.filter(([, v]) => v != null && v !== "")
+    .map(([k, v]) => `<div class="kv__k">${k}</div><div class="kv__v">${v}</div>`).join("");
+  return dl;
+}
+
+function experimentBlock(res) {
+  const sp = el("div", "subpanel");
+  sp.append(el("h3", null, "Параметры эксперимента"));
+  const cfg = res.config || {};
+  const exp = res.experiment || {};
+  const grid = el("div", "kv-grid");
+  grid.append(kvList([
+    ["имя", cfg.name ?? exp.name],
+    ["алгоритм", cfg.algorithm ?? exp.algorithm],
+    ["профиль", exp.profile],
+    ["seed", cfg.seed],
+    ["duration_ms", cfg.duration_ms],
+    ["warmup_ms", cfg.warmup_ms],
+    ["total_request_limit", cfg.total_request_limit],
+    ["manager_workers", cfg.manager_workers],
+    ["preset_file", exp.preset_file],
+    ["описание", cfg.description],
+  ]));
+  const smp = cfg.server_model_params;
+  if (smp) grid.append(kvList(Object.keys(SMP_LABELS).map((k) => [SMP_LABELS[k], smp[k]])));
+  sp.append(grid);
+  return sp;
+}
+
+function latencyBlock(l) {
+  if (!l) return el("div");
+  const p = l.percentiles || {};
+  const u = l.unit || "ms";
+  const sp = el("div", "subpanel");
+  sp.append(el("h3", null, `Латентность (${u}) · ${(l.count ?? 0).toLocaleString("ru-RU")} запросов`));
+  sp.append(kvList([
+    ["min", fmt(l.min)], ["mean", fmt(l.mean)], ["stddev", fmt(l.stddev)],
+    ["p50", fmt(p.p50)], ["p95", fmt(p.p95)], ["p99", fmt(p.p99)], ["max", fmt(l.max)],
+  ]));
+  return sp;
+}
+
 function serverTable(servers) {
   const wrap = el("div", "table-wrap");
   const t = el("table");
   t.innerHTML = `<thead><tr>
-    <th>Сервер</th><th>weight</th><th>capacity</th><th>получено</th><th>успех</th><th>отказы</th>
-    <th>avg, мс</th><th>max, мс</th><th>avg load</th><th>peak load</th><th>падений</th></tr></thead>
+    <th>Сервер</th><th>weight</th><th>capacity</th><th>паралл.</th><th>start_at</th><th>crash_at</th>
+    <th>получено</th><th>успех</th><th>отказы</th>
+    <th>min, мс</th><th>avg, мс</th><th>max, мс</th><th>processing, мс</th>
+    <th>avg load</th><th>peak load</th><th>падений</th></tr></thead>
     <tbody>${servers.map((s) => `<tr>
       <td>#${s.id}</td><td>${s.weight}</td><td>${fmt(s.capacity, 2)}</td>
+      <td>${s.max_parallel_requests ?? "—"}</td><td>${(s.start_at_ms ?? 0).toLocaleString("ru-RU")}</td>
+      <td>${s.crash_at_ms == null ? "∞" : s.crash_at_ms.toLocaleString("ru-RU")}</td>
       <td>${(s.requests_received ?? 0).toLocaleString("ru-RU")}</td>
       <td>${(s.successful ?? 0).toLocaleString("ru-RU")}</td>
       <td>${(s.failed ?? 0).toLocaleString("ru-RU")}</td>
-      <td>${fmt(s.avg_time_ms)}</td><td>${fmt(s.max_time_ms)}</td>
+      <td>${fmt(s.min_time_ms)}</td><td>${fmt(s.avg_time_ms)}</td><td>${fmt(s.max_time_ms)}</td>
+      <td>${fmt(s.total_time_processing_ms)}</td>
       <td>${fmt(s.avg_load ?? 0, 2)}</td><td>${fmt(s.peak_load ?? 0, 2)}</td>
       <td>${s.crashes ?? 0}</td></tr>`).join("")}</tbody>`;
   wrap.append(t);

@@ -69,7 +69,6 @@ TEST(ServerSubmit, SingleTaskCompletes) {
     EXPECT_EQ(stats.failed_, 0u);
 }
 
-// TODO(server.hpp): гонка - successful_ инкрементится после set_value, getStats видит 19 вместо 20.
 TEST(ServerSubmit, MultipleTasksAllComplete) {
     Server s(4, 4.0, 2);
 
@@ -85,7 +84,6 @@ TEST(ServerSubmit, MultipleTasksAllComplete) {
     EXPECT_EQ(stats.successful_, 20u);
 }
 
-// Задача с большей стоимостью обрабатывается строго дольше дешёвой.
 TEST(ServerSubmit, HigherCostTakesLonger) {
     Server s(8, 8.0, 1);
 
@@ -95,7 +93,6 @@ TEST(ServerSubmit, HigherCostTakesLonger) {
     EXPECT_GT(expensive, cheap);
 }
 
-// Отправка задачи после краша приводит к ServerCrashed.
 TEST(ServerCrash, SubmitAfterCrashFails) {
     Server s(1, 1.0, 1);
     s.crash();
@@ -104,7 +101,6 @@ TEST(ServerCrash, SubmitAfterCrashFails) {
     EXPECT_THROW(fut.get(), ServerCrashed);
 }
 
-// Краш отклоняет задачи, ещё не взятые в работу, через ServerCrashed.
 TEST(ServerCrash, PendingTasksRejectedOnCrash) {
     Server s(4, 4.0, 1);
 
@@ -132,14 +128,12 @@ TEST(ServerCrash, PendingTasksRejectedOnCrash) {
     EXPECT_GT(crashed, 0);
 }
 
-// Повторный вызов crash() безопасен.
 TEST(ServerCrash, IsIdempotent) {
     Server s(1, 1.0, 1);
     s.crash();
     EXPECT_NO_THROW(s.crash());
 }
 
-// id остаются уникальными при параллельном создании серверов.
 TEST(ServerConcurrency, IdsAreUniqueAcrossThreads) {
     std::vector<std::vector<uint64_t>> per_thread(kThreads);
 
@@ -170,7 +164,6 @@ TEST(ServerConcurrency, IdsAreUniqueAcrossThreads) {
     EXPECT_EQ(dup, ids.end()) << "duplicate server id: " << *dup;
 }
 
-// TODO(server.hpp): гонка - fut.get() возвращается до failed_.fetch_add, getConnects даёт 1 вместо 0.
 TEST(ServerConnects, ReturnsToZeroAfterRejectedTask) {
     Server s(1, 1.0, 1);
 
@@ -180,7 +173,6 @@ TEST(ServerConnects, ReturnsToZeroAfterRejectedTask) {
     EXPECT_EQ(s.getConnects(), 0u);
 }
 
-// Под массовым параллельным submit каждая задача учтена ровно раз: successful_ + failed_ == всего.
 TEST(ServerStress, ConcurrentSubmitsAllComplete) {
     Server s(8, 16.0, 8);
 
@@ -220,7 +212,6 @@ TEST(ServerStress, ConcurrentSubmitsAllComplete) {
     EXPECT_EQ(stats.successful_ + stats.failed_, resolved);
 }
 
-// Стресс: краш во время массовой нагрузки — ни один future не зависает.
 TEST(ServerStress, ConcurrentSubmitsSurviveCrash) {
     Server s(8, 16.0, 8);
 
