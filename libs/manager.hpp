@@ -1,11 +1,14 @@
 #pragma once
 
 #include <algorithm>
+#include <condition_variable>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <queue>
 #include <shared_mutex>
+#include <thread>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -49,9 +52,14 @@ struct ServerManager {
                 queue_cv_.wait(lk, [this] { return stop_ || !task_queue_.empty(); });
 
                 if (stop_) {
+                    std::vector<std::promise<Duration>> promises;
                     while (!task_queue_.empty()) {
-                        task_queue_.front().promise.set_exception(std::make_exception_ptr(NoServerAvailable{}));
+                        promises.push_back(std::move(task_queue_.front().promise));
                         task_queue_.pop();
+                    }
+                    lk.unlock();
+                    for (auto& p : promises) {
+                        p.set_exception(std::make_exception_ptr(NoServerAvailable{}));
                     }
                     return;
                 }
@@ -61,18 +69,29 @@ struct ServerManager {
             }
 
             ServerPtr server;
+            bool no_policy = false;
+            bool no_server = false;
             {
                 std::shared_lock lock(servers_mtx_);
                 if (!balancer_->hasPickPolicy()) {
-                    prom.set_exception(std::make_exception_ptr(NoPolicy{}));
-                    continue;
+                    no_policy = true;
+                } else {
+                    auto picked_server = balancer_->pickServer(task.getId(), servers_);
+                    if (!picked_server) {
+                        no_server = true;
+                    } else {
+                        server = picked_server;
+                    }
                 }
-                auto server_opt = balancer_->pickServer(task.getId(), servers_);
-                if (!server_opt) {
-                    prom.set_exception(std::make_exception_ptr(NoServerAvailable{}));
-                    continue;
-                }
-                server = server_opt;
+            }
+
+            if (no_policy) {
+                prom.set_exception(std::make_exception_ptr(NoPolicy{}));
+                continue;
+            }
+            if (no_server) {
+                prom.set_exception(std::make_exception_ptr(NoServerAvailable{}));
+                continue;
             }
 
             try {
@@ -100,16 +119,30 @@ struct ServerManager {
 
     std::future<Duration> submitTask(const Task& task) {
         if (num_workers_ == 0) {
-            std::shared_lock lock(servers_mtx_);
-            if (!balancer_->hasPickPolicy()) {
+            ServerPtr server;
+            bool no_policy = false;
+            bool no_server = false;
+
+            {
+                std::shared_lock lock(servers_mtx_);
+                if (!balancer_->hasPickPolicy()) {
+                    no_policy = true;
+                } else {
+                    auto picked_server = balancer_->pickServer(task.getId(), servers_);
+                    if (!picked_server) {
+                        no_server = true;
+                    } else {
+                        server = picked_server;
+                    }
+                }
+            }
+
+            if (no_policy) {
                 std::promise<Duration> prom;
                 prom.set_exception(std::make_exception_ptr(NoPolicy{}));
                 return prom.get_future();
             }
-
-            auto server = balancer_->pickServer(task.getId(), servers_);
-
-            if (!server) {
+            if (no_server) {
                 std::promise<Duration> prom;
                 prom.set_exception(std::make_exception_ptr(NoServerAvailable{}));
                 return prom.get_future();
@@ -119,15 +152,21 @@ struct ServerManager {
         } else {
             std::promise<Duration> prom;
             auto fut = prom.get_future();
+            bool stopped = false;
             {
                 std::lock_guard<std::mutex> lk(queue_mtx_);
                 if (stop_) {
-                    prom.set_exception(std::make_exception_ptr(NoServerAvailable{}));
-                    return fut;
+                    stopped = true;
+                } else {
+                    task_queue_.push({task, std::move(prom)});
                 }
-                task_queue_.push({task, std::move(prom)});
             }
-            queue_cv_.notify_one();
+
+            if (stopped) {
+                prom.set_exception(std::make_exception_ptr(NoServerAvailable{}));
+            } else {
+                queue_cv_.notify_one();
+            }
             return fut;
         }
     }

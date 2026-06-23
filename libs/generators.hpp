@@ -6,7 +6,6 @@
 #include <mutex>
 #include <optional>
 #include <random>
-#include <span>
 #include <vector>
 
 namespace load_balancer {
@@ -38,15 +37,14 @@ struct SequenceGenerator : public IGenerator {
     std::mutex mtx_;
 
    public:
-    SequenceGenerator(std::span<double> seq) {
-        pos_ = 0;
-        seq_.resize(seq.size());
-        for (size_t index = 0; index < seq.size(); index++) {
-            seq_[index] = seq[index];
-        }
-    }
+    SequenceGenerator(std::vector<double> seq)
+        : seq_(std::move(seq))
+        , pos_(0) {}
+
     double next(std::mt19937&) override {
         std::lock_guard<std::mutex> lock(mtx_);
+        if (seq_.empty())
+            return 0.0;
         if (pos_ >= seq_.size()) {
             pos_ = 0;
         }
@@ -96,13 +94,17 @@ class NormalGenerator : public IGenerator {
 class ExponentialGenerator : public IGenerator {
    public:
     explicit ExponentialGenerator(double mean)
-        : dist_(1.0 / mean) {}
+        : mean_(mean)
+        , dist_(mean > 0.0 ? 1.0 / mean : 1.0) {}
     double next(std::mt19937& rng) override {
+        if (mean_ <= 0.0)
+            return 0.0;
         std::lock_guard<std::mutex> lock(mtx_);
         return dist_(rng);
     }
 
    private:
+    double mean_;
     std::exponential_distribution<double> dist_;
     std::mutex mtx_;
 };

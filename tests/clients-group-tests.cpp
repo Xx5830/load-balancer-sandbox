@@ -5,6 +5,7 @@
 #include <asio/io_context.hpp>
 #include <chrono>
 #include <memory>
+#include <vector>
 
 #include "clients-group.hpp"
 #include "load-balancing.hpp"
@@ -24,11 +25,11 @@ namespace {
 ClientGroupConfig makeGroup() {
     ClientGroupConfig grp;
     grp.count = 1;
-    double inter[1]{5.0};
-    double cost[1]{0.1};
+    std::vector<double> inter{5.0};
+    std::vector<double> cost{0.1};
     grp.inter_arrival_gen = std::make_shared<SequenceGenerator>(inter);
     grp.task_cost_gen = std::make_shared<SequenceGenerator>(cost);
-    double delay[1]{0.0};
+    std::vector<double> delay{0.0};
     grp.retry.delay_gen = std::make_shared<SequenceGenerator>(delay);
     return grp;
 }

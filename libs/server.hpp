@@ -149,11 +149,15 @@ class Server {
                 cv_.wait(lk, [this]() { return stop_ || !queue_.empty(); });
 
                 if (stop_) {
+                    std::vector<std::promise<Duration>> promises;
                     while (!queue_.empty()) {
-                        auto p = std::move(queue_.front().promise);
+                        promises.push_back(std::move(queue_.front().promise));
                         queue_.pop();
                         failed_.fetch_add(1);
                         cnt_connects_.fetch_sub(1);
+                    }
+                    lk.unlock(); 
+                    for (auto& p : promises) {
                         p.set_exception(std::make_exception_ptr(ServerCrashed{}));
                     }
                     return;
@@ -256,17 +260,24 @@ class Server {
         std::promise<Duration> res;
         auto fut = res.get_future();
 
+        bool stopped = false;
         {
             std::lock_guard lk(queue_mutex_);
             if (stop_) {
-                failed_.fetch_add(1);
-                cnt_connects_.fetch_sub(1);
-                res.set_exception(std::make_exception_ptr(ServerCrashed{}));
-                return fut;
+                stopped = true;
+            } else {
+                TaskItem item{std::move(task), std::move(res)};
+                queue_.push(std::move(item));
             }
-            queue_.push({std::move(task), std::move(res)});
         }
-        cv_.notify_one();
+
+        if (stopped) {
+            failed_.fetch_add(1);
+            cnt_connects_.fetch_sub(1);
+            res.set_exception(std::make_exception_ptr(ServerCrashed{}));
+        } else {
+            cv_.notify_one();
+        }
         return fut;
     }
 

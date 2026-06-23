@@ -10,7 +10,6 @@
 
 #include "benchmark-config.hpp"
 #include "generators.hpp"
-#include "nlohmann/json_fwd.hpp"
 #include "pick-policy.hpp"
 
 namespace load_balancer {
@@ -31,38 +30,28 @@ inline GeneratorPtr parseGenerator(const nlohmann::json& j) {
     std::string type = j.at("type");
     if (type == "sequence") {
         std::vector<double> vals = j.at("values").get<std::vector<double>>();
-
         return std::make_shared<SequenceGenerator>(vals);
     } else if (type == "constant") {
         return std::make_shared<ConstantGenerator>(j.at("value").get<double>());
     } else if (type == "uniform") {
         double mn = j.at("min");
         double mx = j.at("max");
-
         return std::make_shared<UniformGenerator>(mn, mx);
     } else if (type == "normal") {
         std::optional<double> min, max;
-
-        if (j.contains("min")) {
+        if (j.contains("min"))
             min = j["min"];
-        }
-        if (j.contains("max")) {
+        if (j.contains("max"))
             max = j["max"];
-        }
-
         return std::make_shared<NormalGenerator>(j.at("center"), j.at("deviation"), min, max);
     } else if (type == "exponential") {
         return std::make_shared<ExponentialGenerator>(j.at("center"));
     } else if (type == "lognormal") {
         std::optional<double> min, max;
-
-        if (j.contains("min")) {
+        if (j.contains("min"))
             min = j["min"];
-        }
-        if (j.contains("max")) {
+        if (j.contains("max"))
             max = j["max"];
-        }
-
         return std::make_shared<LognormalGenerator>(j.at("center"), j.at("deviation"), min, max);
     }
 
@@ -150,7 +139,7 @@ inline BenchmarkConfig parseConfig(const nlohmann::json& preset) {
             g.retry.timeout_ms = r.value("timeout_ms", 0);
         } else {
             g.retry.max_retries = 0;
-            double seq[1]{0.0};
+            std::vector<double> seq{0.0};
             g.retry.delay_gen = std::make_shared<SequenceGenerator>(seq);
             g.retry.timeout_ms = 0;
         }
