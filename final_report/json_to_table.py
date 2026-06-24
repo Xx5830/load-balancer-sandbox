@@ -40,7 +40,7 @@ IGNORED_PATHS = {
 
 KEEP_OVERRIDES = {
     "totals": ["throughput_rps"],
-    "servers": ["avg_load"],
+    "servers": ["peak_load"],
 }
 
 INVALID_SHEET_CHARS = re.compile(r"[:\\/?*\[\]]")
