@@ -79,3 +79,6 @@ __pycache__/
 .mypy_cache/
 web/data/runs/
 web/data/presets/
+
+# preset copies
+presets/population/
