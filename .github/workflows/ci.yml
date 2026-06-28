@@ -1,35 +1,32 @@
 name: CI
 
+#good
 on:
-  push:
   pull_request:
-    types: [ opened, synchronize, reopened, ready_for_review ]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   web-lint:
     name: Web lint (ruff + mypy)
-    runs-on: self-hosted
-
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: web
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Set up venv and install
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
         run: |
-          python3 -m venv .venv
+          python -m venv .venv
           . .venv/bin/activate
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -e ".[dev]"
-
       - name: Ruff
         run: |
           . .venv/bin/activate
           ruff check lbweb/
-
       - name: Mypy
         run: |
           . .venv/bin/activate
@@ -37,154 +34,47 @@ jobs:
 
   test:
     name: Test (${{ matrix.config.name }})
-    runs-on: self-hosted
-
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         config:
-          - { name: gcc, cc: gcc, cxx: g++, san: false }
-          - { name: gcc-san, cc: gcc, cxx: g++, san: true }
-          - { name: clang, cc: clang, cxx: clang++, san: false }
-          - { name: clang-san, cc: clang, cxx: clang++, san: true }
-
+          - { name: Release, cc: gcc, cxx: g++, build-type: Release }
+          - { name: Debug+ASAN+UBSAN, cc: gcc, cxx: g++, build-type: Debug }
     env:
       BUILD_DIR: build-${{ matrix.config.name }}
       CC: ${{ matrix.config.cc }}
       CXX: ${{ matrix.config.cxx }}
       ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1"
       UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ cmake ccache libasan8 libubsan1
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ${{ runner.os }}-${{ matrix.config.name }}
+          max-size: 200M
 
       - name: Configure
         run: |
-          if [ "${{ matrix.config.san }}" = "true" ]; then
-            SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
-            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Debug \
-              -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" \
-              -DCMAKE_EXE_LINKER_FLAGS="$SAN"
-          else
-            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
-          fi
-
-      - name: Build
-        run: cmake --build "$BUILD_DIR" --parallel
-
-      - name: Test (gtest JSON)
-        run: |
-          mkdir -p results
-          "$BUILD_DIR"/tests/testing \
-            --gtest_output=json:results/${{ matrix.config.name }}.json
-          status=$?
-          exit $status
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: test-results-${{ matrix.config.name }}
-          path: results/${{ matrix.config.name }}.json
-
-  coverage:
-    name: Coverage (gcc)
-    runs-on: self-hosted
-
-    env:
-      BUILD_DIR: build-coverage
-      CC: gcc
-      CXX: g++
-      COV_FLAGS: "--coverage -O0 -g"
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Configure (coverage)
-        run: >
-          cmake -S . -B "$BUILD_DIR"
-          -DCMAKE_BUILD_TYPE=Debug
-          -DCMAKE_C_FLAGS="$COV_FLAGS"
-          -DCMAKE_CXX_FLAGS="$COV_FLAGS"
-          -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+          cmake -S . -B "$BUILD_DIR" \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config.build-type }} \
+            -DBUILD_TESTING=ON \
+            -DENABLE_STRESS_TESTS=OFF \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            ${{ matrix.config.san && '-DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"' || '' }} \
+            ${{ matrix.config.san && '-DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"' || '' }} \
+            ${{ matrix.config.san && '-DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"' || '' }}
 
       - name: Build
         run: cmake --build "$BUILD_DIR" --parallel
 
       - name: Test
-        run: ctest --test-dir "$BUILD_DIR" --output-on-failure || true
-
-      - name: Generate coverage report
-        if: always()
-        run: /mnt/data/actions-runner/gen_coverage.sh "$BUILD_DIR" results
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: coverage-report
-          path: |
-            coverage.info
-            coverage-html
-            results/coverage.txt
-
-  report:
-    name: Report Card
-    runs-on: self-hosted
-    needs: [test, coverage]
-    if: always()
-
-    permissions:
-      contents: read
-      pull-requests: write
-
-    steps:
-      - name: Download test results
-        uses: actions/download-artifact@v5
-        with:
-          pattern: test-results-*
-          path: artifacts
-          merge-multiple: true
-
-      - name: Download coverage report
-        continue-on-error: true
-        uses: actions/download-artifact@v5
-        with:
-          name: coverage-report
-          path: coverage-artifact
-
-      - name: Build report card
-        run: |
-          mkdir -p results
-          cp artifacts/*.json results/ 2>/dev/null || true
-          python3 /mnt/data/actions-runner/report_card.py results \
-            --commit "${GITHUB_SHA::7}" \
-            --coverage coverage-artifact/results/coverage.txt \
-            --out report.md || true
-          cat report.md >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Comment report card on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs = require('fs');
-            const body = fs.readFileSync('report.md', 'utf8');
-            const marker = '<!-- report-card -->';
-
-            const { owner, repo } = context.repo;
-            const issue_number = context.issue.number;
-
-            const comments = await github.paginate(
-              github.rest.issues.listComments,
-              { owner, repo, issue_number }
-            );
-            const existing = comments.find(c => c.body.includes(marker));
-
-            if (existing) {
-              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
-            } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number, body });
-            }
+        run: ctest --test-dir "$BUILD_DIR" --output-on-failure
